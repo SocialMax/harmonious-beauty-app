@@ -535,6 +535,7 @@ main{padding:22px 20px;}
    ============================================================ */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxUStC_U35a-0tadtNE1LzqQrqFAdt6EMeR5gOr6TEEMIye_uNWKGeD6CCa-YksG01tNw/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
+const BUILD_VERSION = 'build-diag-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
 let currentTab = 'dashboard';
@@ -701,7 +702,7 @@ function render(){
     <div class="topbar">
       <div class="brand">
         <div class="mark">Harmonious <span>Beauty</span></div>
-        <div class="tag">Salon Booking</div>
+        <div class="tag">Salon Booking · ${BUILD_VERSION}</div>
       </div>
       <div class="today-pill">${fmtDate(todayISO())}</div>
     </div>
@@ -721,14 +722,25 @@ function render(){
     b.addEventListener('click', ()=>{ currentTab=b.dataset.tab; render(); });
   });
   const main = document.getElementById('main');
-  if(currentTab==='dashboard'){ main.innerHTML = renderDashboard(); wireDashboard(); }
-  if(currentTab==='calendar'){ main.innerHTML = renderCalendar(); wireCalendar(); }
-  if(currentTab==='bookings'){ main.innerHTML = renderBookings(); wireBookings(); }
-  if(currentTab==='clients'){ main.innerHTML = renderClients(); wireClients(); }
-  if(currentTab==='products'){ main.innerHTML = renderProducts(); wireProducts(); }
-  if(currentTab==='earnings'){ main.innerHTML = renderEarnings(); wireEarnings(); }
-  if(currentTab==='reminders'){ main.innerHTML = renderReminders(); wireReminders(); }
-  if(currentTab==='archive'){ main.innerHTML = renderArchive(); wireArchive(); }
+  const tabs = {
+    dashboard: [renderDashboard, wireDashboard],
+    calendar: [renderCalendar, wireCalendar],
+    bookings: [renderBookings, wireBookings],
+    clients: [renderClients, wireClients],
+    products: [renderProducts, wireProducts],
+    earnings: [renderEarnings, wireEarnings],
+    reminders: [renderReminders, wireReminders],
+    archive: [renderArchive, wireArchive],
+  };
+  const [renderFn, wireFn] = tabs[currentTab] || [];
+  if(renderFn){
+    try{
+      main.innerHTML = renderFn();
+      wireFn();
+    }catch(e){
+      main.innerHTML = `<div style="background:#3d1f1f; color:#ffb4b4; padding:16px; border-radius:10px; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; line-height:1.5;">TEMPORARY DIAGNOSTIC — please screenshot this:\n\n${e.message}\n\n${(e.stack||'').split('\n').slice(0,4).join('\n')}</div>`;
+    }
+  }
 }
 
 function navBtn(tab,label){
@@ -1123,6 +1135,10 @@ function findConflict(candidate, excludeId){
 }
 
 function openBookingDetail(id){
+  try{ openBookingDetailInner(id); }
+  catch(e){ infoModal('TEMPORARY DIAGNOSTIC — please screenshot this:\n\n' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n')); }
+}
+function openBookingDetailInner(id){
   const b = DATA.bookings.find(x=>x.id===id);
   if(!b) return;
   const client = DATA.clients.find(c=>c.id===b.clientId);
@@ -1224,6 +1240,10 @@ function computeDiscount(service, reasonName){
   return 0;
 }
 function openBookingModal(id, defaultDate, defaultClientId){
+  try{ openBookingModalInner(id, defaultDate, defaultClientId); }
+  catch(e){ infoModal('TEMPORARY DIAGNOSTIC — please screenshot this:\n\n' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n')); }
+}
+function openBookingModalInner(id, defaultDate, defaultClientId){
   const b = id ? DATA.bookings.find(x=>x.id===id) : null;
   const activeClients = DATA.clients.filter(c=>!c.archived);
   const activeServices = DATA.services.filter(s=>!s.archived);
@@ -1417,6 +1437,10 @@ function fmtDOB(dob){
   return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(isoToUTCDate(dob));
 }
 function openClientDetail(id){
+  try{ openClientDetailInner(id); }
+  catch(e){ infoModal('TEMPORARY DIAGNOSTIC — please screenshot this:\n\n' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n')); }
+}
+function openClientDetailInner(id){
   const c = DATA.clients.find(x=>x.id===id);
   if(!c) return;
   const today = todayISO();
