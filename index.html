@@ -533,9 +533,9 @@ main{padding:22px 20px;}
    See google-apps-script.js for the backend code and setup steps.
    APP_SECRET_KEY must exactly match SHARED_SECRET in the Apps Script.
    ============================================================ */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxEVn2tiXz4y4inw8ZhHify-B9vDiybEEppLrx6r2KpbJV2VSNqiCy1i4FokBqPKsJQyQ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuQY7fObpe1TzUlWKenfHdy1KcTq1BVZc7nT0R1wns6gHtM45M4OM4itpaD4Z47EMYrw/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
-const BUILD_VERSION = 'build-newurl-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const BUILD_VERSION = 'build-newurl-2'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
 const APP_PASSWORD = 'harmony2026'; // change this to whatever you and your girlfriend want — it's a simple deterrent, not real security (see the note where this is checked below)
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
@@ -545,8 +545,9 @@ let calState = { viewMode:'month', monthISO: todayISO().slice(0,7)+'-01', select
 let earningsPeriod = 'mtd'; // 'mtd' | 'ytd' | 'all' | 'custom'
 let earningsCustom = { start: todayISO().slice(0,8)+'01', end: todayISO() };
 
-const DEFAULT_TEMPLATE = "Hi {name}! Just a reminder about your {service} appointment on {date} at {time}. See you soon — reply if you need to reschedule. 💫";
-const DEFAULT_CONFIRMATION_TEMPLATE = "Hi {name}! Your {service} appointment is booked for {date} at {time}. Looking forward to seeing you! 💫";
+const DEFAULT_TEMPLATE = "Hi {name}! Just a reminder about your {service} appointment on {date} at {time}. It'll take about {duration} and comes to {cost}. See you soon — reply if you need to reschedule. 💫";
+const DEFAULT_CONFIRMATION_TEMPLATE = "Hi {name}! Your {service} appointment is booked for {date} at {time}. It'll take about {duration} and comes to {cost}. Looking forward to seeing you! 💫";
+const DEFAULT_REVIEW_TEMPLATE = "Hi {name}! Thanks so much for coming in for your {service} — hope you loved it! If you have a moment, a Google review would really mean a lot: https://g.page/r/Cc80o-LICfo4EAE/review 💛";
 
 const uid = () => Math.random().toString(36).slice(2,10);
 
@@ -606,6 +607,7 @@ function showToast(msg){
 function applyFreshDefaults(){
   DATA.template = DEFAULT_TEMPLATE;
   DATA.confirmationTemplate = DEFAULT_CONFIRMATION_TEMPLATE;
+  DATA.reviewTemplate = DEFAULT_REVIEW_TEMPLATE;
   DATA.taxRate = 20;
   DATA.services = [
     {id:uid(), name:'Swedish Massage', price:55, duration:60, cost:8},
@@ -674,6 +676,7 @@ async function loadData(){
       ],
       template: (json.settings && json.settings.template) || DEFAULT_TEMPLATE,
       confirmationTemplate: (json.settings && json.settings.confirmationTemplate) || DEFAULT_CONFIRMATION_TEMPLATE,
+      reviewTemplate: (json.settings && json.settings.reviewTemplate) || DEFAULT_REVIEW_TEMPLATE,
       taxRate: (json.settings && json.settings.taxRate !== undefined && json.settings.taxRate !== '')
         ? Number(json.settings.taxRate) : 20,
     };
@@ -701,7 +704,7 @@ function saveData(){
           products: DATA.products,
           bookings: DATA.bookings.map(serializeBooking),
           discountReasons: DATA.discountReasons,
-          settings: { template: DATA.template, confirmationTemplate: DATA.confirmationTemplate, taxRate: DATA.taxRate },
+          settings: { template: DATA.template, confirmationTemplate: DATA.confirmationTemplate, reviewTemplate: DATA.reviewTemplate, taxRate: DATA.taxRate },
         }),
       });
     }catch(e){
@@ -1180,8 +1183,9 @@ function openBookingDetailInner(id){
     <h3>${client?client.name:'Unknown client'}</h3>
     <div class="hint" style="margin-top:0; margin-bottom:6px;">${fmtDate(b.date)} · ${b.time} · <span class="status ${b.status}" style="margin-left:4px;">${statusLabel(b.status)}</span></div>
     ${b.reminderSentAt
-      ? `<div class="hint" style="margin:0 0 14px; color:#3F7A4F; font-weight:600;">✓ Reminder sent ${fmtDateTime(b.reminderSentAt)}</div>`
-      : `<div class="hint" style="margin:0 0 14px;">Reminder not sent yet</div>`}
+      ? `<div class="hint" style="margin:0 0 6px; color:#3F7A4F; font-weight:600;">✓ Reminder sent ${fmtDateTime(b.reminderSentAt)}</div>`
+      : `<div class="hint" style="margin:0 0 6px;">Reminder not sent yet</div>`}
+    ${b.reviewRequestSentAt ? `<div class="hint" style="margin:0 0 14px; color:#3F7A4F; font-weight:600;">✓ Review request sent ${fmtDateTime(b.reviewRequestSentAt)}</div>` : ''}
 
     <div class="msg-preview" style="margin-bottom:10px;">${reminderMsg}</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
@@ -1828,12 +1832,22 @@ function renderReminders(){
   const needsSending = upcoming.filter(b=>!b.reminderSentAt);
   const alreadySent = upcoming.filter(b=>b.reminderSentAt);
 
+  // Review requests: completed appointments from yesterday back through the
+  // last week, so there's a window to catch up even if you don't check daily.
+  const reviewWindowStart = addDays(today, -8);
+  const reviewWindowEnd = addDays(today, -1);
+  const reviewEligible = DATA.bookings
+    .filter(b=>b.status==='completed' && !b.archived && b.date>=reviewWindowStart && b.date<=reviewWindowEnd)
+    .sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time));
+  const reviewNeedsSending = reviewEligible.filter(b=>!b.reviewRequestSentAt);
+  const reviewAlreadySent = reviewEligible.filter(b=>b.reviewRequestSentAt);
+
   return `
     <div class="section-head"><h2>Reminders</h2></div>
     <div class="template-box">
       <label>Reminder message template</label>
       <textarea id="f-template" rows="3">${DATA.template || DEFAULT_TEMPLATE}</textarea>
-      <div class="hint">Use <code>{name}</code>, <code>{service}</code>, <code>{date}</code>, <code>{time}</code> — they'll be filled in automatically.</div>
+      <div class="hint">Use <code>{name}</code>, <code>{service}</code>, <code>{date}</code>, <code>{time}</code>, <code>{duration}</code>, <code>{cost}</code> — they'll be filled in automatically.</div>
       <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
         <button class="btn small secondary" id="saveTemplate">Save template</button>
       </div>
@@ -1841,9 +1855,17 @@ function renderReminders(){
     <div class="template-box">
       <label>Booking confirmation template</label>
       <textarea id="f-confirm-template" rows="3">${DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE}</textarea>
-      <div class="hint">Sent as a one-tap prompt right after you create a new booking.</div>
+      <div class="hint">Sent as a one-tap prompt right after you create a new booking. Same placeholders available: <code>{name}</code>, <code>{service}</code>, <code>{date}</code>, <code>{time}</code>, <code>{duration}</code>, <code>{cost}</code>.</div>
       <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
         <button class="btn small secondary" id="saveConfirmTemplate">Save template</button>
+      </div>
+    </div>
+    <div class="template-box">
+      <label>Review request template</label>
+      <textarea id="f-review-template" rows="3">${DATA.reviewTemplate || DEFAULT_REVIEW_TEMPLATE}</textarea>
+      <div class="hint">Shows up here once a completed appointment is at least a day old. There's no way for the app to send this on its own overnight — you tap to send when you check in.</div>
+      <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
+        <button class="btn small secondary" id="saveReviewTemplate">Save template</button>
       </div>
     </div>
     <div class="section-head"><h2 style="font-size:1.1rem;">Needs sending (${needsSending.length})</h2></div>
@@ -1852,16 +1874,27 @@ function renderReminders(){
       <div class="section-head" style="margin-top:24px;"><h2 style="font-size:1.1rem;">Already sent (${alreadySent.length})</h2></div>
       ${alreadySent.map(b=>reminderCard(b)).join('')}
     ` : ''}
+    <div class="section-head" style="margin-top:32px;"><h2>Review requests</h2></div>
+    <div class="section-head"><h2 style="font-size:1.1rem;">Needs sending (${reviewNeedsSending.length})</h2></div>
+    ${reviewNeedsSending.length ? reviewNeedsSending.map(b=>reviewCard(b)).join('') : emptyHTML('All caught up','Nothing to ask for a review on right now.')}
+    ${reviewAlreadySent.length ? `
+      <div class="section-head" style="margin-top:24px;"><h2 style="font-size:1.1rem;">Already sent (${reviewAlreadySent.length})</h2></div>
+      ${reviewAlreadySent.map(b=>reviewCard(b)).join('')}
+    ` : ''}
   `;
 }
-function buildConfirmationMessage(b){
+function fillMessageTemplate(t, b){
   const client = DATA.clients.find(c=>c.id===b.clientId);
-  const t = DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE;
   return t
     .replaceAll('{name}', client?client.name.split(' ')[0]:'there')
     .replaceAll('{service}', bookingServiceNames(b) !== '—' ? bookingServiceNames(b) : 'your appointment')
     .replaceAll('{date}', fmtDate(b.date))
-    .replaceAll('{time}', b.time);
+    .replaceAll('{time}', b.time)
+    .replaceAll('{cost}', `£${bookingTotal(b).toFixed(2)}`)
+    .replaceAll('{duration}', `${bookingDuration(b)} minutes`);
+}
+function buildConfirmationMessage(b){
+  return fillMessageTemplate(DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE, b);
 }
 function promptBookingConfirmation(booking){
   const client = DATA.clients.find(c=>c.id===booking.clientId);
@@ -1881,13 +1914,7 @@ function promptBookingConfirmation(booking){
   `);
 }
 function buildMessage(b){
-  const client = DATA.clients.find(c=>c.id===b.clientId);
-  const t = DATA.template || DEFAULT_TEMPLATE;
-  return t
-    .replaceAll('{name}', client?client.name.split(' ')[0]:'there')
-    .replaceAll('{service}', bookingServiceNames(b) !== '—' ? bookingServiceNames(b) : 'your appointment')
-    .replaceAll('{date}', fmtDate(b.date))
-    .replaceAll('{time}', b.time);
+  return fillMessageTemplate(DATA.template || DEFAULT_TEMPLATE, b);
 }
 function markReminderSent(bookingId){
   const b = DATA.bookings.find(x=>x.id===bookingId);
@@ -1895,6 +1922,40 @@ function markReminderSent(bookingId){
   b.reminderSentAt = new Date().toISOString();
   saveData();
   render();
+}
+function buildReviewMessage(b){
+  return fillMessageTemplate(DATA.reviewTemplate || DEFAULT_REVIEW_TEMPLATE, b);
+}
+function markReviewRequestSent(bookingId){
+  const b = DATA.bookings.find(x=>x.id===bookingId);
+  if(!b) return;
+  b.reviewRequestSentAt = new Date().toISOString();
+  saveData();
+  render();
+}
+function reviewCard(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const msg = buildReviewMessage(b);
+  const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
+  const sent = !!b.reviewRequestSentAt;
+  return `
+    <div class="reminder-card" style="${sent?'opacity:0.75;':''}">
+      <div class="top">
+        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}</div>
+        <div class="when">${fmtDate(b.date)} · ${bookingServiceNames(b)}</div>
+      </div>
+      ${sent ? `<div class="hint" style="color:#3F7A4F; margin-top:0; margin-bottom:10px; font-weight:600;">Sent ${fmtDateTime(b.reviewRequestSentAt)}</div>` : ''}
+      <div class="msg-preview">${msg}</div>
+      <div class="send-row">
+        ${phoneDigits ? `
+          <a class="btn small send-review-link" data-booking-id="${b.id}" style="text-decoration:none;" href="https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}" target="_blank">${sent?'Resend WhatsApp':'Send on WhatsApp'}</a>
+          <a class="btn small secondary send-review-link" data-booking-id="${b.id}" style="text-decoration:none;" href="sms:${phoneDigits}?body=${encodeURIComponent(msg)}">${sent?'Resend text':'Send as text'}</a>
+        ` : ''}
+        ${client&&client.email ? `<a class="btn small secondary send-review-link" data-booking-id="${b.id}" style="text-decoration:none;" href="mailto:${client.email}?subject=${encodeURIComponent('Thanks for visiting!')}&body=${encodeURIComponent(msg)}">${sent?'Resend email':'Send email'}</a>` : ''}
+        ${(!phoneDigits && !(client&&client.email)) ? `<span class="tag-lowstock" style="border-color:var(--paper-dim); color:var(--paper-dim);">no phone or email on file</span>` : ''}
+      </div>
+    </div>
+  `;
 }
 function reminderCard(b){
   const client = DATA.clients.find(c=>c.id===b.clientId);
@@ -1929,10 +1990,19 @@ function wireReminders(){
     DATA.confirmationTemplate = document.getElementById('f-confirm-template').value;
     saveData(); showToast('Template saved');
   });
+  document.getElementById('saveReviewTemplate').addEventListener('click', ()=>{
+    DATA.reviewTemplate = document.getElementById('f-review-template').value;
+    saveData(); showToast('Template saved');
+  });
   document.querySelectorAll('.send-reminder-link').forEach(link=>{
     link.addEventListener('click', ()=>{
       // Don't preventDefault — the WhatsApp/SMS link still opens as normal, we just log it too.
       markReminderSent(link.dataset.bookingId);
+    });
+  });
+  document.querySelectorAll('.send-review-link').forEach(link=>{
+    link.addEventListener('click', ()=>{
+      markReviewRequestSent(link.dataset.bookingId);
     });
   });
 }
