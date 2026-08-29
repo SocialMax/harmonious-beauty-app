@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Harmonious Beauty — Salon Booking</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --ink:#2E3B2C;
+  --surface:#FFFFFF;
+  --surface-2:#EAE6D9;
+  --paper:#F3EEE3;
+  --paper-dim:#71806E;
+  --gold:#5F7D63;
+  --gold-soft:#7C9885;
+  --blush:#BD8A5F;
+  --danger:#B25A4C;
+  --on-accent:#FFFFFF;
+  --line: rgba(46,59,44,0.14);
+  --radius: 14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0; width:100%; overflow-x:hidden;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Work Sans', sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{
+  font-family:'Fraunces', serif;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+button{font-family:inherit;}
+::selection{background:var(--gold); color:var(--on-accent);}
+
+#app{
+  max-width:1100px;
+  margin:0 auto;
+  padding:0 0 90px 0;
+  min-height:100vh;
+}
+
+/* Header */
+.topbar{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  padding:28px 20px 18px 20px;
+  border-bottom:1px solid var(--line);
+}
+.brand{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.brand .mark{
+  font-size:1.5rem;
+  color:var(--ink);
+}
+.brand .mark span{color:var(--gold);}
+.brand .tag{
+  font-size:0.72rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--paper-dim);
+}
+.today-pill{
+  font-size:0.78rem;
+  color:var(--paper-dim);
+  border:1px solid var(--line);
+  padding:6px 12px;
+  border-radius:100px;
+  white-space:nowrap;
+}
+
+/* Nav - wraps onto multiple rows on narrow screens instead of side-scrolling */
+.nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--line);
+}
+.nav button{
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--paper-dim);
+  padding:7px 12px;
+  border-radius:100px;
+  font-size:0.82rem;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all .15s ease;
+}
+.nav button.active{
+  background:var(--gold);
+  color:var(--on-accent);
+  font-weight:600;
+}
+.nav button:not(.active):hover{
+  border-color:var(--line);
+  color:var(--ink);
+}
+
+main{padding:22px 20px;}
+.section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.section-head h2{font-size:1.4rem; margin:0;}
+.btn{
+  background:var(--gold);
+  color:var(--on-accent);
+  border:none;
+  padding:10px 18px;
+  border-radius:100px;
+  font-weight:600;
+  font-size:0.86rem;
+  cursor:pointer;
+  transition:transform .1s ease, background .15s ease;
+}
+.btn:hover{background:var(--gold-soft);}
+.btn:active{transform:scale(0.97);}
+.btn.secondary{
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--ink);
+}
+.btn.secondary:hover{border-color:var(--gold); color:var(--gold);}
+.btn.danger{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+.btn.danger:hover{background:var(--danger);color:var(--on-accent);}
+.btn.small{padding:6px 12px; font-size:0.76rem;}
+.btn:disabled{opacity:0.4; cursor:not-allowed;}
+
+/* Cards / stat grid */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+  margin-bottom:26px;
+}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+}
+.stat-card .num{font-family:'Fraunces',serif; font-size:1.9rem; color:var(--gold);}
+.stat-card .lbl{font-size:0.76rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.08em;}
+
+/* Ticket card - signature element */
+.ticket{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
+  margin-bottom:12px;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px 16px;
+  overflow:hidden;
+}
+.ticket::before{
+  content:'';
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:4px;
+  background:var(--gold);
+}
+.ticket .stub{
+  font-family:'Fraunces', serif;
+  text-align:center;
+  min-width:56px;
+  border-right:1px dashed var(--line);
+  padding-right:14px;
+}
+.ticket .stub .d{font-size:1.5rem; line-height:1; color:var(--gold);}
+.ticket .stub .m{font-size:0.68rem; text-transform:uppercase; color:var(--paper-dim); letter-spacing:0.08em;}
+.ticket .stub .t{font-size:0.72rem; color:var(--paper-dim); margin-top:4px;}
+.ticket .info{flex:1 1 140px; min-width:0;}
+.ticket .info .name{font-weight:600; font-size:1rem;}
+.ticket .info .service{color:var(--paper-dim); font-size:0.84rem; margin-top:2px;}
+.ticket .status{
+  font-size:0.68rem;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  padding:4px 9px;
+  border-radius:100px;
+  border:1px solid var(--line);
+  color:var(--paper-dim);
+  white-space:nowrap;
+}
+.status.booked{color:var(--gold); border-color:var(--gold);}
+.status.deposit_paid{color:var(--blush); border-color:var(--blush);}
+.status.completed{color:#3F7A4F; border-color:#3F7A4F;}
+.status.cancelled{color:var(--danger); border-color:var(--danger);}
+.ticket .actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  flex:1 1 100%;
+  justify-content:flex-end;
+}
+
+.empty{
+  text-align:center;
+  padding:50px 20px;
+  color:var(--paper-dim);
+  border:1px dashed var(--line);
+  border-radius:var(--radius);
+}
+.empty .display{color:var(--ink); font-size:1.2rem; margin-bottom:6px;}
+
+/* Table-ish list for clients/products */
+.list-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.list-row .main{flex:1; min-width:180px;}
+.list-row .main .name{font-weight:600;}
+.list-row .main .sub{font-size:0.8rem; color:var(--paper-dim); margin-top:2px;}
+.list-row .side{display:flex; align-items:center; gap:10px;}
+.tag-lowstock{
+  font-size:0.7rem;
+  color:var(--danger);
+  border:1px solid var(--danger);
+  padding:3px 9px;
+  border-radius:100px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+}
+
+/* Modal */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(10,14,11,0.6);
+  backdrop-filter:blur(3px);
+  display:flex; align-items:flex-end; justify-content:center;
+  z-index:50;
+}
+@media(min-width:640px){
+  .overlay{align-items:center;}
+}
+.modal{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+  padding:24px 22px 28px 22px;
+  width:100%;
+  max-width:480px;
+  max-height:88vh;
+  overflow-y:auto;
+}
+@media(min-width:640px){
+  .modal{border-radius:18px;}
+}
+.modal h3{margin:0 0 16px 0; font-size:1.2rem;}
+.field{margin-bottom:14px;}
+.field label{
+  display:block;
+  font-size:0.76rem;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--paper-dim);
+  margin-bottom:6px;
+}
+.field input, .field select, .field textarea{
+  width:100%;
+  background:var(--paper);
+  border:1px solid var(--line);
+  color:var(--ink);
+  padding:11px 12px;
+  border-radius:8px;
+  font-size:0.94rem;
+  font-family:inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:none; border-color:var(--gold);
+}
+.field textarea{resize:vertical; min-height:70px;}
+.check-list{
+  border:1px solid var(--line);
+  border-radius:8px;
+  max-height:180px;
+  overflow-y:auto;
+}
+.check-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+  font-size:0.9rem;
+  cursor:pointer;
+}
+.check-row:last-child{border-bottom:none;}
+.check-row input[type="checkbox"]{width:18px; height:18px; flex-shrink:0;}
+.check-row input[type="number"]{padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--paper);}
+.field-row{display:flex; gap:10px;}
+.field-row .field{flex:1; min-width:0;}
+.field-row .field input, .field-row .field select{width:100%; min-width:0;}
+.modal-actions{
+  display:flex; gap:10px; margin-top:18px;
+  justify-content:flex-end;
+}
+
+/* Reminders */
+.reminder-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  margin-bottom:12px;
+}
+.reminder-card .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+.reminder-card .name{font-weight:600;}
+.reminder-card .when{font-size:0.8rem; color:var(--gold);}
+.sent-badge{
+  display:inline-block;
+  font-size:0.66rem;
+  font-weight:700;
+  color:#3F7A4F;
+  background:rgba(63,122,79,0.12);
+  border-radius:100px;
+  padding:2px 8px;
+  margin-left:6px;
+  vertical-align:middle;
+}
+.reminder-card .msg-preview{
+  font-size:0.84rem;
+  color:var(--ink);
+  background:var(--surface-2);
+  border-radius:8px;
+  padding:10px 12px;
+  margin-bottom:12px;
+  white-space:pre-wrap;
+}
+.reminder-card .send-row{display:flex; gap:8px; flex-wrap:wrap;}
+.icon-btn{
+  display:inline-flex; align-items:center; gap:6px;
+}
+
+.cal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.cal-header .cal-month{font-size:1.1rem;}
+.cal-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  margin-bottom:6px;
+}
+.cal-weekday-row{
+  font-size:0.7rem;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:var(--paper-dim);
+  text-align:center;
+  margin-bottom:8px;
+}
+.cal-cell{
+  position:relative;
+  aspect-ratio:1/1;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:4px 2px;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease;
+}
+.cal-cell.empty-cell{
+  border:none; background:transparent; cursor:default;
+}
+.cal-cell:not(.empty-cell):hover{ border-color:var(--gold); }
+.cal-cell .daynum{ font-size:0.85rem; line-height:1; }
+.cal-cell.is-today .daynum{ color:var(--gold); font-weight:700; }
+.cal-cell.is-selected{ background:var(--surface-2); border-color:var(--gold); }
+.cal-cell .dot-count{
+  font-size:0.6rem;
+  background:var(--gold);
+  color:var(--on-accent);
+  min-width:16px;
+  height:16px;
+  border-radius:100px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  padding:0 4px;
+  line-height:1;
+}
+.cal-cell .weekday-lbl{
+  font-size:0.62rem;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:var(--paper-dim);
+}
+.cal-cell.week-cell{
+  aspect-ratio:auto;
+  min-height:74px;
+}
+.view-toggle{
+  display:flex;
+  gap:6px;
+  margin-bottom:16px;
+}
+.view-toggle button{
+  flex:1;
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--paper-dim);
+  padding:9px 10px;
+  border-radius:100px;
+  font-size:0.82rem;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.view-toggle button.active{
+  background:var(--gold);
+  color:var(--on-accent);
+  font-weight:600;
+  border-color:var(--gold);
+}
+
+/* Day view timeline */
+.day-timeline{
+  position:relative;
+  border-top:1px solid var(--line);
+  margin-top:8px;
+}
+.day-hour-row{
+  position:absolute;
+  left:0; right:0;
+  border-top:1px solid var(--line);
+  height:0;
+}
+.day-hour-label{
+  position:absolute;
+  top:-8px; left:0;
+  font-size:0.68rem;
+  color:var(--paper-dim);
+  background:var(--paper);
+  padding-right:6px;
+}
+.day-blocks-layer{
+  position:absolute;
+  top:0; left:52px; right:0; bottom:0;
+}
+.day-block{
+  position:absolute;
+  left:0; right:4px;
+  background:var(--surface);
+  border:1px solid var(--gold);
+  border-left:4px solid var(--gold);
+  border-radius:8px;
+  padding:5px 8px;
+  overflow:hidden;
+  cursor:pointer;
+  box-shadow:0 1px 3px rgba(46,59,44,0.08);
+}
+.day-block.status-completed{ border-color:#3F7A4F; border-left-color:#3F7A4F; }
+.day-block-time{ font-size:0.68rem; color:var(--paper-dim); font-weight:600; }
+.day-block-name{ font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.day-block-service{ font-size:0.72rem; color:var(--paper-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.status-select{
+  appearance:none;
+  -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0L5 6L10 0Z' fill='%232E3B2C'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:28px !important;
+}
+
+.template-box{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  margin-bottom:22px;
+}
+.template-box label{
+  font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--paper-dim); display:block; margin-bottom:8px;
+}
+.template-box .hint{font-size:0.74rem; color:var(--paper-dim); margin-top:8px;}
+.template-box code{background:var(--ink); padding:2px 5px; border-radius:4px; color:var(--gold-soft);}
+
+.toast{
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  background:var(--gold); color:var(--on-accent); padding:10px 20px;
+  border-radius:100px; font-size:0.86rem; font-weight:600;
+  z-index:100; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+
+@media(min-width:640px){
+  .nav{position:sticky; top:0; background:var(--paper); z-index:10;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   BACKEND CONFIG — paste your Google Apps Script Web App URL here.
+   See google-apps-script.js for the backend code and setup steps.
+   APP_SECRET_KEY must exactly match SHARED_SECRET in the Apps Script.
+   ============================================================ */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxUStC_U35a-0tadtNE1LzqQrqFAdt6EMeR5gOr6TEEMIye_uNWKGeD6CCa-YksG01tNw/exec';
+const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
+
+let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
+let currentTab = 'dashboard';
+let editing = null; // {type, id}
+let calState = { viewMode:'month', monthISO: todayISO().slice(0,7)+'-01', selected: todayISO() };
+let earningsPeriod = 'mtd'; // 'mtd' | 'ytd' | 'all' | 'custom'
+let earningsCustom = { start: todayISO().slice(0,8)+'01', end: todayISO() };
+
+const DEFAULT_TEMPLATE = "Hi {name}! Just a reminder about your {service} appointment on {date} at {time}. See you soon — reply if you need to reschedule. 💫";
+const DEFAULT_CONFIRMATION_TEMPLATE = "Hi {name}! Your {service} appointment is booked for {date} at {time}. Looking forward to seeing you! 💫";
+
+const uid = () => Math.random().toString(36).slice(2,10);
+
+/* ---------- DATE HANDLING — all calendar dates are treated as plain
+   Y-M-D values and manipulated via UTC math, so results never depend on
+   the device's own timezone setting. "Now" (today's date, current time)
+   is always resolved specifically in the Europe/London timezone. ---------- */
+function todayISO(){
+  // What calendar date is it right now, in the UK — regardless of device timezone.
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/London', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(new Date()); // en-CA locale formats as YYYY-MM-DD
+}
+function isoToUTCDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1, d));
+}
+function fmtDate(iso){
+  return new Intl.DateTimeFormat('en-GB', {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'}).format(isoToUTCDate(iso));
+}
+function dayNum(iso){ return Number(iso.split('-')[2]); }
+function monShort(iso){
+  return new Intl.DateTimeFormat('en-GB', {month:'short', timeZone:'UTC'}).format(isoToUTCDate(iso)).toUpperCase();
+}
+function addDays(iso,n){
+  const d = isoToUTCDate(iso);
+  d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function fmtDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const datePart = new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', timeZone:'Europe/London'}).format(d);
+  const timePart = new Intl.DateTimeFormat('en-GB', {hour:'2-digit', minute:'2-digit', timeZone:'Europe/London'}).format(d);
+  return `${datePart} at ${timePart}`;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function applyFreshDefaults(){
+  DATA.template = DEFAULT_TEMPLATE;
+  DATA.confirmationTemplate = DEFAULT_CONFIRMATION_TEMPLATE;
+  DATA.taxRate = 20;
+  DATA.services = [
+    {id:uid(), name:'Swedish Massage', price:55, duration:60, cost:8},
+    {id:uid(), name:'Classic Facial', price:45, duration:45, cost:10},
+    {id:uid(), name:'Gel Manicure', price:30, duration:45, cost:5},
+  ];
+  DATA.products = [
+    {id:uid(), name:'Hydrating Moisturiser', stock:8, threshold:3, price:28, costPrice:9},
+    {id:uid(), name:'Gentle Foaming Cleanser', stock:8, threshold:3, price:22, costPrice:7},
+  ];
+  DATA.discountReasons = [
+    {reason:'Full price', type:'percent', value:0},
+    {reason:'Sell at cost', type:'cost', value:0},
+    {reason:'Friends', type:'percent', value:20},
+    {reason:'Family', type:'percent', value:20},
+    {reason:'10% off', type:'percent', value:10},
+    {reason:'20% off', type:'percent', value:20},
+  ];
+}
+
+function isConfigured(){
+  return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === -1;
+}
+
+function toBool(v){ return v===true || v==='TRUE' || v==='true' || v===1 || v==='1'; }
+function deserializeBooking(b){
+  const out = Object.assign({}, b);
+  try{ out.serviceIds = typeof b.serviceIds==='string' ? JSON.parse(b.serviceIds||'[]') : (b.serviceIds||[]); }catch(e){ out.serviceIds = []; }
+  try{ out.products = typeof b.products==='string' ? JSON.parse(b.products||'[]') : (b.products||[]); }catch(e){ out.products = []; }
+  try{ out.snapshot = typeof b.snapshot==='string' ? (b.snapshot ? JSON.parse(b.snapshot) : null) : (b.snapshot||null); }catch(e){ out.snapshot = null; }
+  out.archived = toBool(b.archived);
+  out.locked = toBool(b.locked);
+  return out;
+}
+function serializeBooking(b){
+  const out = Object.assign({}, b);
+  out.serviceIds = JSON.stringify(b.serviceIds||[]);
+  out.products = JSON.stringify(b.products||[]);
+  out.snapshot = b.snapshot ? JSON.stringify(b.snapshot) : '';
+  return out;
+}
+
+async function loadData(){
+  if(!isConfigured()){
+    applyFreshDefaults();
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + '?key=' + encodeURIComponent(APP_SECRET_KEY));
+    const json = await res.json();
+    if(json.ok === false){
+      showToast('Could not connect — check your secret key matches in both places');
+      applyFreshDefaults();
+      render();
+      return;
+    }
+    DATA = {
+      clients: (json.clients || []).map(c=>Object.assign({}, c, {archived: toBool(c.archived)})),
+      services: (json.services || []).map(s=>Object.assign({}, s, {archived: toBool(s.archived)})),
+      products: (json.products || []).map(p=>Object.assign({}, p, {archived: toBool(p.archived)})),
+      bookings: (json.bookings || []).map(deserializeBooking),
+      discountReasons: (json.discountReasons && json.discountReasons.length) ? json.discountReasons : [
+        {reason:'Full price', type:'percent', value:0},
+        {reason:'Sell at cost', type:'cost', value:0},
+      ],
+      template: (json.settings && json.settings.template) || DEFAULT_TEMPLATE,
+      confirmationTemplate: (json.settings && json.settings.confirmationTemplate) || DEFAULT_CONFIRMATION_TEMPLATE,
+      taxRate: (json.settings && json.settings.taxRate !== undefined && json.settings.taxRate !== '')
+        ? Number(json.settings.taxRate) : 20,
+    };
+  } catch(e){
+    showToast('Could not load from Google Sheets — check connection');
+    applyFreshDefaults();
+  }
+  render();
+}
+
+let saveTimeout = null;
+function saveData(){
+  if(!isConfigured()) return;
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async ()=>{
+    try{
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        // text/plain avoids a CORS preflight that Apps Script doesn't handle well
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          key: APP_SECRET_KEY,
+          clients: DATA.clients,
+          services: DATA.services,
+          products: DATA.products,
+          bookings: DATA.bookings.map(serializeBooking),
+          discountReasons: DATA.discountReasons,
+          settings: { template: DATA.template, confirmationTemplate: DATA.confirmationTemplate, taxRate: DATA.taxRate },
+        }),
+      });
+    }catch(e){
+      showToast('Save failed — check connection');
+    }
+  }, 400);
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div class="mark">Harmonious <span>Beauty</span></div>
+        <div class="tag">Salon Booking</div>
+      </div>
+      <div class="today-pill">${fmtDate(todayISO())}</div>
+    </div>
+    <div class="nav">
+      ${navBtn('dashboard','Dashboard')}
+      ${navBtn('calendar','Calendar')}
+      ${navBtn('bookings','Bookings')}
+      ${navBtn('clients','Clients')}
+      ${navBtn('products','Products')}
+      ${navBtn('earnings','Earnings')}
+      ${navBtn('reminders','Reminders')}
+      ${navBtn('archive','Archive')}
+    </div>
+    <main id="main"></main>
+  `;
+  document.querySelectorAll('.nav button').forEach(b=>{
+    b.addEventListener('click', ()=>{ currentTab=b.dataset.tab; render(); });
+  });
+  const main = document.getElementById('main');
+  if(currentTab==='dashboard'){ main.innerHTML = renderDashboard(); wireDashboard(); }
+  if(currentTab==='calendar'){ main.innerHTML = renderCalendar(); wireCalendar(); }
+  if(currentTab==='bookings'){ main.innerHTML = renderBookings(); wireBookings(); }
+  if(currentTab==='clients'){ main.innerHTML = renderClients(); wireClients(); }
+  if(currentTab==='products'){ main.innerHTML = renderProducts(); wireProducts(); }
+  if(currentTab==='earnings'){ main.innerHTML = renderEarnings(); wireEarnings(); }
+  if(currentTab==='reminders'){ main.innerHTML = renderReminders(); wireReminders(); }
+  if(currentTab==='archive'){ main.innerHTML = renderArchive(); wireArchive(); }
+}
+
+function navBtn(tab,label){
+  return `<button data-tab="${tab}" class="${currentTab===tab?'active':''}">${label}</button>`;
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(){
+  const today = todayISO();
+  const todays = DATA.bookings.filter(b=>b.date===today && b.status!=='cancelled' && !b.archived).sort((a,b)=>a.time.localeCompare(b.time));
+  const lowStock = DATA.products.filter(p=>p.stock<=p.threshold);
+  const upcomingCount = DATA.bookings.filter(b=>b.date>=today && isActiveBooking(b) && !b.archived).length;
+
+  return `
+    ${!isConfigured() ? `
+      <div class="template-box" style="border-color:var(--danger); margin-bottom:22px;">
+        <label style="color:var(--danger);">Not connected to Google Sheets yet</label>
+        <div class="hint" style="margin-top:0;">This app isn't saving anywhere permanent right now. Paste your Google Apps Script Web App URL into the <code>APPS_SCRIPT_URL</code> constant near the top of the code to connect it to your Sheet.</div>
+      </div>
+    ` : ''}
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${todays.length}</div><div class="lbl">Today's appts</div></div>
+      <div class="stat-card"><div class="num">${upcomingCount}</div><div class="lbl">Upcoming</div></div>
+      <div class="stat-card"><div class="num">${DATA.clients.length}</div><div class="lbl">Clients</div></div>
+      <div class="stat-card"><div class="num" style="color:${lowStock.length?'var(--danger)':'var(--gold)'}">${lowStock.length}</div><div class="lbl">Low stock</div></div>
+    </div>
+    <div class="section-head"><h2>Today</h2></div>
+    ${todays.length ? todays.map(b=>ticketHTML(b)).join('') : emptyHTML('Nothing on the books today','Add a booking to see it here.')}
+  `;
+}
+
+function wireDashboard(){ wireTicketClicks(); }
+
+function ticketHTML(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  return `
+    <div class="ticket ticket-clickable" data-booking-id="${b.id}" style="cursor:pointer;">
+      <div class="stub">
+        <div class="d">${dayNum(b.date)}</div>
+        <div class="m">${monShort(b.date)}</div>
+        <div class="t">${b.time}</div>
+      </div>
+      <div class="info">
+        <div class="name">${client?client.name:'Unknown client'}</div>
+        <div class="service">${bookingServiceNames(b)}</div>
+      </div>
+      <div class="status ${b.status}">${statusLabel(b.status)}</div>
+    </div>
+  `;
+}
+function wireTicketClicks(){
+  document.querySelectorAll('.ticket-clickable').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('select') || e.target.closest('button')) return;
+      openBookingDetail(el.dataset.bookingId);
+    });
+  });
+}
+
+function emptyHTML(title, sub){
+  return `<div class="empty"><div class="display">${title}</div><div>${sub}</div></div>`;
+}
+
+/* ---------- CALENDAR ---------- */
+function shiftMonth(monthISO, delta){
+  const [y,m] = monthISO.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m-1+delta, 1));
+  return d.toISOString().slice(0,7)+'-01';
+}
+function monthLabel(monthISO){
+  return new Intl.DateTimeFormat('en-GB', {month:'long', year:'numeric', timeZone:'UTC'}).format(isoToUTCDate(monthISO));
+}
+function startOfWeek(iso){
+  const d = isoToUTCDate(iso);
+  d.setUTCDate(d.getUTCDate()-d.getUTCDay());
+  return d.toISOString().slice(0,10);
+}
+function weekdayLetters(){ return ['S','M','T','W','T','F','S']; }
+function getBookingsByDay(){
+  const map = {};
+  DATA.bookings.forEach(b=>{
+    if(b.status==='cancelled') return;
+    if(b.archived) return;
+    (map[b.date] = map[b.date]||[]).push(b);
+  });
+  return map;
+}
+
+function renderCalendar(){
+  return `
+    <div class="section-head">
+      <h2>Calendar</h2>
+      <button class="btn" id="calAddBtn">+ New booking</button>
+    </div>
+    <div class="view-toggle">
+      <button data-view="month" class="${calState.viewMode==='month'?'active':''}">Month</button>
+      <button data-view="week" class="${calState.viewMode==='week'?'active':''}">Week</button>
+      <button data-view="day" class="${calState.viewMode==='day'?'active':''}">Day</button>
+    </div>
+    ${calState.viewMode==='month' ? renderMonthView() : calState.viewMode==='week' ? renderWeekView() : renderDayView()}
+  `;
+}
+
+function renderMonthView(){
+  const first = isoToUTCDate(calState.monthISO);
+  const year = first.getUTCFullYear(), month = first.getUTCMonth();
+  const daysInMonth = new Date(Date.UTC(year, month+1, 0)).getUTCDate();
+  const startWeekday = first.getUTCDay();
+  const today = todayISO();
+  const bookingsByDay = getBookingsByDay();
+
+  let cells = '';
+  for(let i=0;i<startWeekday;i++) cells += `<div class="cal-cell empty-cell"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const count = (bookingsByDay[iso]||[]).length;
+    const isToday = iso===today;
+    const isSelected = iso===calState.selected;
+    cells += `
+      <div class="cal-cell ${isToday?'is-today':''} ${isSelected?'is-selected':''}" data-date="${iso}">
+        <span class="daynum">${day}</span>
+        ${count ? `<span class="dot-count">${count}</span>` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="cal-header">
+      <button class="btn small secondary" id="calPrev">‹</button>
+      <div class="cal-month display">${monthLabel(calState.monthISO)}</div>
+      <button class="btn small secondary" id="calNext">›</button>
+    </div>
+    <div class="cal-grid cal-weekday-row">
+      ${weekdayLetters().map(l=>`<div>${l}</div>`).join('')}
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div class="hint" style="margin-top:14px; text-align:center;">Tap a day to see its schedule.</div>
+  `;
+}
+
+function renderWeekView(){
+  const weekStart = startOfWeek(calState.selected);
+  const today = todayISO();
+  const bookingsByDay = getBookingsByDay();
+  const dayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let cells = '';
+  for(let i=0;i<7;i++){
+    const iso = addDays(weekStart, i);
+    const count = (bookingsByDay[iso]||[]).length;
+    const isToday = iso===today;
+    const isSelected = iso===calState.selected;
+    cells += `
+      <div class="cal-cell week-cell ${isToday?'is-today':''} ${isSelected?'is-selected':''}" data-date="${iso}">
+        <span class="weekday-lbl">${dayShort[i]}</span>
+        <span class="daynum">${dayNum(iso)}</span>
+        ${count ? `<span class="dot-count">${count}</span>` : ''}
+      </div>
+    `;
+  }
+  const weekEnd = addDays(weekStart, 6);
+  const label = `${fmtDate(weekStart)} – ${fmtDate(weekEnd)}`;
+
+  return `
+    <div class="cal-header">
+      <button class="btn small secondary" id="calPrev">‹</button>
+      <div class="cal-month display" style="font-size:0.95rem;">${label}</div>
+      <button class="btn small secondary" id="calNext">›</button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div class="hint" style="margin-top:14px; text-align:center;">Tap a day to see its schedule.</div>
+  `;
+}
+
+function renderDayView(){
+  const bookingsByDay = getBookingsByDay();
+  const dayBookings = (bookingsByDay[calState.selected]||[]).filter(b=>b.status!=='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+  const startHour = 8, endHour = 20;
+  const pxPerMin = 1.4;
+  const totalHeight = (endHour-startHour)*60*pxPerMin;
+
+  let hourLines = '';
+  for(let h=startHour; h<=endHour; h++){
+    const top = (h-startHour)*60*pxPerMin;
+    hourLines += `<div class="day-hour-row" style="top:${top}px;"><span class="day-hour-label">${String(h).padStart(2,'0')}:00</span></div>`;
+  }
+
+  let blocks = '';
+  dayBookings.forEach(b=>{
+    const startMin = timeToMinutes(b.time) - startHour*60;
+    const duration = bookingDuration(b);
+    const top = Math.max(0, startMin*pxPerMin);
+    const height = Math.max(32, duration*pxPerMin - 2);
+    const client = DATA.clients.find(c=>c.id===b.clientId);
+    blocks += `
+      <div class="day-block status-${b.status} booking-open" data-booking-id="${b.id}" style="top:${top}px; height:${height}px;">
+        <div class="day-block-time">${b.time}</div>
+        <div class="day-block-name">${client?client.name:'Unknown'}</div>
+        <div class="day-block-service">${bookingServiceNames(b)}</div>
+      </div>
+    `;
+  });
+
+  return `
+    <div class="cal-header">
+      <button class="btn small secondary" id="calPrev">‹</button>
+      <div class="cal-month display" style="font-size:1.05rem;">${fmtDate(calState.selected)}</div>
+      <button class="btn small secondary" id="calNext">›</button>
+    </div>
+    <div class="day-timeline" style="height:${totalHeight}px;">
+      ${hourLines}
+      <div class="day-blocks-layer">${blocks}</div>
+    </div>
+    ${dayBookings.length ? '' : emptyHTML('Nothing booked', 'Add a booking for this day.')}
+  `;
+}
+
+function selectedDayPanel(bookingsByDay){
+  const dayBookings = (bookingsByDay[calState.selected]||[]).sort((a,b)=>a.time.localeCompare(b.time));
+  return `
+    <div class="section-head" style="margin-top:24px;">
+      <h2 style="font-size:1.1rem;">${fmtDate(calState.selected)}</h2>
+    </div>
+    ${dayBookings.length ? dayBookings.map(b=>bookingRow(b)).join('') : emptyHTML('Nothing booked', 'Tap a day above, or add a booking for this date.')}
+  `;
+}
+
+function wireCalendar(){
+  document.querySelectorAll('.view-toggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{ calState.viewMode = b.dataset.view; render(); });
+  });
+  document.getElementById('calAddBtn').addEventListener('click', ()=>openBookingModal(null, calState.selected));
+  const prevBtn = document.getElementById('calPrev');
+  const nextBtn = document.getElementById('calNext');
+  if(prevBtn) prevBtn.addEventListener('click', ()=>{
+    if(calState.viewMode==='month') calState.monthISO = shiftMonth(calState.monthISO,-1);
+    else if(calState.viewMode==='week') calState.selected = addDays(calState.selected,-7);
+    else calState.selected = addDays(calState.selected,-1);
+    render();
+  });
+  if(nextBtn) nextBtn.addEventListener('click', ()=>{
+    if(calState.viewMode==='month') calState.monthISO = shiftMonth(calState.monthISO,1);
+    else if(calState.viewMode==='week') calState.selected = addDays(calState.selected,7);
+    else calState.selected = addDays(calState.selected,1);
+    render();
+  });
+  document.querySelectorAll('.cal-cell[data-date]').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      calState.selected = c.dataset.date;
+      calState.viewMode = 'day';
+      render();
+    });
+  });
+  wireBookingRowActions();
+}
+
+/* ---------- BOOKINGS ---------- */
+function renderBookings(){
+  const sorted = DATA.bookings.filter(b=>!b.archived).sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+  return `
+    <div class="section-head">
+      <h2>Bookings</h2>
+      <button class="btn" id="addBookingBtn">+ New booking</button>
+    </div>
+    ${sorted.length ? sorted.map(b=>bookingRow(b)).join('') : emptyHTML('No bookings yet','Create your first appointment.')}
+  `;
+}
+function paymentLabel(p){
+  if(p==='cash') return 'Cash';
+  if(p==='bank_transfer') return 'Bank transfer';
+  return null;
+}
+function bookingRow(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const payLabel = paymentLabel(b.paymentType);
+  return `
+    <div class="ticket">
+      <div class="stub booking-open" data-booking-id="${b.id}" style="cursor:pointer;">
+        <div class="d">${dayNum(b.date)}</div>
+        <div class="m">${monShort(b.date)}</div>
+        <div class="t">${b.time}</div>
+      </div>
+      <div class="info booking-open" data-booking-id="${b.id}" style="cursor:pointer;">
+        <div class="name">${client?client.name:'Unknown client'}</div>
+        <div class="service">${bookingServiceNames(b)} · £${bookingTotal(b).toFixed(2)}${(b.discount>0)?` (${b.discountReason})`:''}${payLabel?` · ${payLabel}`:''}</div>
+      </div>
+      <div class="actions">
+        <select class="btn small secondary status-select" data-id="${b.id}" style="cursor:pointer;">
+          ${statusOptionsHTML(b.status)}
+        </select>
+        <button class="btn small secondary edit-booking" data-id="${b.id}">Edit</button>
+        <button class="btn small danger del-booking" data-id="${b.id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+function wireBookings(){
+  document.getElementById('addBookingBtn').addEventListener('click', ()=>openBookingModal());
+  wireBookingRowActions();
+}
+function wireBookingRowActions(){
+  document.querySelectorAll('.booking-open').forEach(el=>el.addEventListener('click', ()=>openBookingDetail(el.dataset.bookingId)));
+  document.querySelectorAll('.edit-booking').forEach(b=>b.addEventListener('click', ()=>openBookingModal(b.dataset.id)));
+  document.querySelectorAll('.del-booking').forEach(b=>b.addEventListener('click', ()=>{
+    confirmModal('Archive this booking? It will move to the Archive tab and won\'t show up in your lists, but you can restore it anytime.', ()=>{
+      archiveEntity(DATA.bookings, b.dataset.id);
+      saveData(); render();
+    });
+  }));
+  document.querySelectorAll('.status-select').forEach(s=>s.addEventListener('change', ()=>{
+    const booking = DATA.bookings.find(x=>x.id===s.dataset.id);
+    booking.status = s.value;
+    if(s.value==='completed') snapshotBooking(booking);
+    else booking.locked = false;
+    saveData(); render();
+  }));
+}
+/* ---------- BOOKING DATA HELPERS (multi-service, multi-product) ---------- */
+function getBookingServices(b){
+  if(b.serviceIds && b.serviceIds.length) return b.serviceIds.map(id=>DATA.services.find(s=>s.id===id)).filter(Boolean);
+  if(b.serviceId){ const s=DATA.services.find(x=>x.id===b.serviceId); return s?[s]:[]; } // legacy single-service bookings
+  return [];
+}
+function getBookingProducts(b){
+  if(!b.products || !b.products.length) return [];
+  return b.products.map(p=>({ product: DATA.products.find(x=>x.id===p.productId), qty: Number(p.qty)||1 })).filter(x=>x.product);
+}
+function rawServicesTotal(b){ return getBookingServices(b).reduce((sum,s)=>sum+(Number(s.price)||0), 0); }
+function rawServicesCost(b){ return getBookingServices(b).reduce((sum,s)=>sum+(Number(s.cost)||0), 0); }
+function rawProductsTotal(b){ return getBookingProducts(b).reduce((sum,p)=>sum+(Number(p.product.price)||0)*p.qty, 0); }
+function rawProductsCost(b){ return getBookingProducts(b).reduce((sum,p)=>sum+(Number(p.product.costPrice)||0)*p.qty, 0); }
+// Once a booking is locked (marked Completed), its financial figures are frozen
+// to whatever they were at that moment — later edits to service/product prices,
+// or archiving them, won't retroactively change historical earnings.
+function bookingServicesTotal(b){ return (b.locked && b.snapshot) ? Number(b.snapshot.servicesTotal)||0 : rawServicesTotal(b); }
+function bookingServicesCost(b){ return (b.locked && b.snapshot) ? Number(b.snapshot.servicesCost)||0 : rawServicesCost(b); }
+function bookingProductsTotal(b){ return (b.locked && b.snapshot) ? Number(b.snapshot.productsTotal)||0 : rawProductsTotal(b); }
+function bookingProductsCost(b){ return (b.locked && b.snapshot) ? Number(b.snapshot.productsCost)||0 : rawProductsCost(b); }
+function bookingDuration(b){ const d = getBookingServices(b).reduce((sum,s)=>sum+(Number(s.duration)||0), 0); return d>0?d:30; }
+function bookingTotal(b){ return Math.max(0, bookingServicesTotal(b)+bookingProductsTotal(b)-(Number(b.discount)||0)); }
+function bookingTotalCost(b){ return bookingServicesCost(b)+bookingProductsCost(b); }
+function bookingServiceNames(b){ const names = getBookingServices(b).map(s=>s.name); return names.length?names.join(', '):'—'; }
+function snapshotBooking(b){
+  b.snapshot = {
+    servicesTotal: rawServicesTotal(b),
+    servicesCost: rawServicesCost(b),
+    productsTotal: rawProductsTotal(b),
+    productsCost: rawProductsCost(b),
+  };
+  b.locked = true;
+}
+function computeDiscountAmount(totalPrice, totalCost, reasonName){
+  if(!reasonName || reasonName === 'Full price') return 0;
+  const rule = (DATA.discountReasons || []).find(r => r.reason === reasonName);
+  if(!rule) return 0;
+  if(rule.type === 'cost') return Math.max(0, totalPrice - totalCost);
+  if(rule.type === 'percent') return totalPrice * ((Number(rule.value) || 0) / 100);
+  return 0;
+}
+function timeToMinutes(t){ const parts=(t||'0:0').split(':').map(Number); return (parts[0]||0)*60+(parts[1]||0); }
+function archiveEntity(arr, id){
+  const item = arr.find(x=>x.id===id);
+  if(item) item.archived = true;
+}
+function restoreEntity(arr, id){
+  const item = arr.find(x=>x.id===id);
+  if(item) item.archived = false;
+}
+function permanentlyDeleteEntity(arrName, id){
+  DATA[arrName] = DATA[arrName].filter(x=>x.id!==id);
+}
+const STATUS_LABELS = { booked:'Booked', deposit_paid:'Deposit paid', completed:'Completed (paid)', cancelled:'Cancelled' };
+function isActiveBooking(b){ return b.status==='booked' || b.status==='deposit_paid'; }
+function statusLabel(status){ return STATUS_LABELS[status] || status; }
+function statusOptionsHTML(current){
+  return Object.keys(STATUS_LABELS).map(key=>
+    `<option value="${key}" ${current===key?'selected':''}>${STATUS_LABELS[key]}</option>`
+  ).join('');
+}
+function findConflict(candidate, excludeId){
+  const startMin = timeToMinutes(candidate.time);
+  const endMin = startMin + bookingDuration(candidate);
+  return DATA.bookings.find(b=>{
+    if(b.id===excludeId) return false;
+    if(b.status==='cancelled') return false;
+    if(b.archived) return false;
+    if(b.date!==candidate.date) return false;
+    const bStart = timeToMinutes(b.time);
+    const bEnd = bStart + bookingDuration(b);
+    return startMin < bEnd && bStart < endMin;
+  });
+}
+
+function openBookingDetail(id){
+  const b = DATA.bookings.find(x=>x.id===id);
+  if(!b) return;
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const services = getBookingServices(b);
+  const products = getBookingProducts(b);
+  const payLabel = paymentLabel(b.paymentType) || 'Not recorded';
+  const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
+  const reminderMsg = buildMessage(b);
+
+  const serviceLines = services.length ? services.map(s=>`
+    <div class="list-row" style="margin-bottom:8px;">
+      <div class="main"><div class="name">${s.name}</div><div class="sub">${s.duration} min</div></div>
+      <div class="side"><div style="font-weight:600;">£${Number(s.price).toFixed(2)}</div></div>
+    </div>
+  `).join('') : '<div class="hint">No services on this booking.</div>';
+
+  const productLines = products.length ? products.map(p=>`
+    <div class="list-row" style="margin-bottom:8px;">
+      <div class="main"><div class="name">${p.product.name}</div><div class="sub">Qty ${p.qty}</div></div>
+      <div class="side"><div style="font-weight:600;">£${(Number(p.product.price)*p.qty).toFixed(2)}</div></div>
+    </div>
+  `).join('') : '';
+
+  openModal(`
+    <h3>${client?client.name:'Unknown client'}</h3>
+    <div class="hint" style="margin-top:0; margin-bottom:6px;">${fmtDate(b.date)} · ${b.time} · <span class="status ${b.status}" style="margin-left:4px;">${statusLabel(b.status)}</span></div>
+    ${b.reminderSentAt
+      ? `<div class="hint" style="margin:0 0 14px; color:#3F7A4F; font-weight:600;">✓ Reminder sent ${fmtDateTime(b.reminderSentAt)}</div>`
+      : `<div class="hint" style="margin:0 0 14px;">Reminder not sent yet</div>`}
+
+    <div class="msg-preview" style="margin-bottom:10px;">${reminderMsg}</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+      ${phoneDigits ? `<a class="btn small send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="https://wa.me/${phoneDigits}?text=${encodeURIComponent(reminderMsg)}" target="_blank">${b.reminderSentAt?'Resend WhatsApp':'Send WhatsApp'}</a>` : ''}
+      ${phoneDigits ? `<a class="btn small secondary send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="sms:${phoneDigits}?body=${encodeURIComponent(reminderMsg)}">Text</a>` : ''}
+      ${client&&client.email ? `<a class="btn small secondary send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="mailto:${client.email}?subject=${encodeURIComponent('Your appointment')}&body=${encodeURIComponent(reminderMsg)}">Email</a>` : ''}
+      ${client&&client.phone ? `<a class="btn small secondary" style="text-decoration:none;" href="tel:${client.phone}">Call</a>` : ''}
+      ${(!phoneDigits && !(client&&client.email)) ? `<span class="hint" style="margin:0;">No phone or email on file for this client.</span>` : ''}
+    </div>
+
+    <label style="font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--paper-dim); display:block; margin-bottom:8px;">Services</label>
+    ${serviceLines}
+    ${productLines ? `<label style="font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--paper-dim); display:block; margin:14px 0 8px;">Products sold</label>${productLines}` : ''}
+
+    ${b.discount>0 ? `<div class="hint" style="margin-top:6px;">Discount applied: £${Number(b.discount).toFixed(2)} (${b.discountReason})</div>` : ''}
+
+    <div class="stat-grid" style="margin-top:16px; margin-bottom:0;">
+      <div class="stat-card"><div class="num">£${bookingTotal(b).toFixed(2)}</div><div class="lbl">Total</div></div>
+      <div class="stat-card"><div class="num" style="font-size:1.1rem;">${payLabel}</div><div class="lbl">Payment</div></div>
+    </div>
+
+    ${b.notes ? `<div class="field" style="margin-top:16px;"><label>Notes</label><div style="padding:8px 0; white-space:pre-wrap;">${b.notes}</div></div>` : ''}
+
+    <div class="field" style="margin-top:16px;"><label>Status</label>
+      <select id="detailStatus">
+        ${statusOptionsHTML(b.status)}
+      </select>
+    </div>
+
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button class="btn secondary" id="cancelModal">Close</button>
+      <button class="btn danger" id="deleteFromDetail" style="background:transparent; border:1px solid var(--danger); color:var(--danger);">Delete</button>
+      <button class="btn" id="editFromBookingDetail">Edit</button>
+    </div>
+  `);
+  document.getElementById('detailStatus').addEventListener('change', (e)=>{
+    b.status = e.target.value;
+    if(e.target.value==='completed') snapshotBooking(b);
+    else b.locked = false;
+    saveData(); render();
+  });
+  document.getElementById('editFromBookingDetail').addEventListener('click', ()=>{ closeModal(); openBookingModal(b.id); });
+  document.getElementById('deleteFromDetail').addEventListener('click', ()=>{
+    confirmModal('Archive this booking? It will move to the Archive tab and won\'t show up in your lists, but you can restore it anytime.', ()=>{
+      archiveEntity(DATA.bookings, b.id);
+      saveData(); closeModal(); render();
+    });
+  });
+  document.querySelectorAll('.send-reminder-link').forEach(link=>{
+    link.addEventListener('click', ()=>{
+      // Don't preventDefault — the WhatsApp/SMS/email link still opens as normal.
+      markReminderSent(b.id);
+      closeModal();
+      openBookingDetail(b.id); // reopen fresh so the "sent" status shows immediately
+    });
+  });
+}
+
+function computeDiscount(service, reasonName){
+  if(!service || !reasonName || reasonName === 'Full price') return 0;
+  const rule = (DATA.discountReasons || []).find(r => r.reason === reasonName);
+  if(!rule) return 0;
+  const price = Number(service.price) || 0;
+  if(rule.type === 'cost'){
+    return Math.max(0, price - (Number(service.cost) || 0));
+  }
+  if(rule.type === 'percent'){
+    return price * ((Number(rule.value) || 0) / 100);
+  }
+  return 0;
+}
+function openBookingModal(id, defaultDate, defaultClientId){
+  const b = id ? DATA.bookings.find(x=>x.id===id) : null;
+  const activeClients = DATA.clients.filter(c=>!c.archived);
+  const activeServices = DATA.services.filter(s=>!s.archived);
+  if(activeClients.length===0){ infoModal('Add a client first, then come back to create a booking.'); currentTab='clients'; render(); return; }
+  if(activeServices.length===0){ infoModal('Add a service first from the Products tab, then come back to create a booking.'); return; }
+  const preselectClientId = b ? b.clientId : defaultClientId;
+  const selectedServiceIds = b ? getBookingServices(b).map(s=>s.id) : [];
+  const selectedProductQty = {};
+  if(b) getBookingProducts(b).forEach(p=>{ selectedProductQty[p.product.id] = p.qty; });
+
+  // Include the client/service/product even if archived, as long as it's already
+  // attached to this booking — so editing an old booking doesn't lose its data.
+  const clientList = DATA.clients.filter(c=>!c.archived || c.id===preselectClientId);
+  const serviceList = DATA.services.filter(s=>!s.archived || selectedServiceIds.includes(s.id));
+  const productList = DATA.products.filter(p=>!p.archived || selectedProductQty[p.id]);
+
+  const clientOpts = clientList.map(c=>`<option value="${c.id}" ${preselectClientId===c.id?'selected':''}>${c.name}${c.archived?' (archived)':''}</option>`).join('');
+
+  const serviceChecks = serviceList.map(s=>`
+    <label class="check-row">
+      <input type="checkbox" class="svc-check" value="${s.id}" ${selectedServiceIds.includes(s.id)?'checked':''}>
+      <span>${s.name}${s.archived?' (archived)':''} — £${s.price} · ${s.duration} min</span>
+    </label>
+  `).join('');
+
+  const productChecks = productList.map(p=>`
+    <div class="check-row">
+      <label style="flex:1; display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" class="prod-check" value="${p.id}" ${selectedProductQty[p.id]?'checked':''}>
+        <span>${p.name}${p.archived?' (archived)':''} — £${p.price}</span>
+      </label>
+      <input type="number" class="prod-qty" data-id="${p.id}" min="1" value="${selectedProductQty[p.id]||1}" style="width:56px; ${selectedProductQty[p.id]?'':'display:none;'}">
+    </div>
+  `).join('');
+
+  const reasons = (DATA.discountReasons && DATA.discountReasons.length) ? DATA.discountReasons : [{reason:'Full price', type:'percent', value:0}];
+  const currentReason = b ? (b.discountReason || 'Full price') : 'Full price';
+  const reasonOpts = reasons.map(r=>`<option value="${r.reason}" ${currentReason===r.reason?'selected':''}>${r.reason}</option>`).join('');
+  openModal(`
+    <h3>${b?'Edit booking':'New booking'}</h3>
+    <div class="field"><label>Client</label><select id="f-client">${clientOpts}</select></div>
+    <div class="field"><label>Services</label>
+      <div class="check-list">${serviceChecks || '<div class="hint">No services set up yet.</div>'}</div>
+    </div>
+    <div class="field"><label>Products sold (optional)</label>
+      <div class="check-list">${productChecks || '<div class="hint">No products set up yet.</div>'}</div>
+    </div>
+    <div class="field"><label>Date</label><input type="date" id="f-date" value="${b?b.date:(defaultDate||todayISO())}"></div>
+    <div class="field"><label>Time</label><input type="time" id="f-time" value="${b?b.time:'10:00'}"></div>
+    <div class="field"><label>Discount reason</label>
+      <select id="f-discount-reason">${reasonOpts}</select>
+      <div class="hint" id="discountPreview" style="margin-top:6px;"></div>
+    </div>
+    <div class="field"><label>Payment type</label>
+      <select id="f-payment">
+        <option value="" ${!b||!b.paymentType?'selected':''}>Not set</option>
+        <option value="cash" ${b&&b.paymentType==='cash'?'selected':''}>Cash</option>
+        <option value="bank_transfer" ${b&&b.paymentType==='bank_transfer'?'selected':''}>Bank transfer</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="f-notes">${b?b.notes||'':''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Cancel</button>
+      <button class="btn" id="saveBooking">${b?'Save changes':'Add booking'}</button>
+    </div>
+  `);
+
+  const getSelectedServiceIds = ()=> Array.from(document.querySelectorAll('.svc-check:checked')).map(el=>el.value);
+  const getSelectedProducts = ()=> Array.from(document.querySelectorAll('.prod-check:checked')).map(el=>{
+    const qtyInput = document.querySelector(`.prod-qty[data-id="${el.value}"]`);
+    return { productId: el.value, qty: Number(qtyInput ? qtyInput.value : 1) || 1 };
+  });
+
+  const updatePreview = ()=>{
+    const svcIds = getSelectedServiceIds();
+    const services = svcIds.map(id=>DATA.services.find(s=>s.id===id)).filter(Boolean);
+    const products = getSelectedProducts().map(p=>({ product: DATA.products.find(x=>x.id===p.productId), qty:p.qty })).filter(x=>x.product);
+    const servicesTotal = services.reduce((s,sv)=>s+(Number(sv.price)||0),0);
+    const servicesCost = services.reduce((s,sv)=>s+(Number(sv.cost)||0),0);
+    const productsTotal = products.reduce((s,p)=>s+(Number(p.product.price)||0)*p.qty,0);
+    const reasonName = document.getElementById('f-discount-reason').value;
+    const discount = computeDiscountAmount(servicesTotal, servicesCost, reasonName);
+    const total = Math.max(0, servicesTotal + productsTotal - discount);
+    const preview = document.getElementById('discountPreview');
+    if(!services.length && !products.length){ preview.textContent = 'Select at least one service.'; return; }
+    if(discount > 0){
+      preview.innerHTML = `£${(servicesTotal+productsTotal).toFixed(2)} − £${discount.toFixed(2)} discount = <strong style="color:var(--gold);">£${total.toFixed(2)}</strong>`;
+    } else {
+      preview.textContent = `Total: £${total.toFixed(2)}`;
+    }
+  };
+  document.querySelectorAll('.svc-check, .prod-check, #f-discount-reason').forEach(el=>el.addEventListener('change', updatePreview));
+  document.querySelectorAll('.prod-check').forEach(cb=>cb.addEventListener('change', (e)=>{
+    const qtyInput = document.querySelector(`.prod-qty[data-id="${e.target.value}"]`);
+    if(qtyInput) qtyInput.style.display = e.target.checked ? '' : 'none';
+  }));
+  document.querySelectorAll('.prod-qty').forEach(inp=>inp.addEventListener('input', updatePreview));
+  updatePreview();
+
+  document.getElementById('saveBooking').addEventListener('click', ()=>{
+    const clientId = document.getElementById('f-client').value;
+    const serviceIds = getSelectedServiceIds();
+    const products = getSelectedProducts();
+    const date = document.getElementById('f-date').value;
+    const time = document.getElementById('f-time').value;
+    const notes = document.getElementById('f-notes').value;
+    const paymentType = document.getElementById('f-payment').value;
+    const discountReason = document.getElementById('f-discount-reason').value;
+
+    if(!clientId || !date || !time){ infoModal('Please fill in client, date and time.'); return; }
+    if(!serviceIds.length){ infoModal('Please select at least one service.'); return; }
+
+    const servicesForCalc = serviceIds.map(sid=>DATA.services.find(s=>s.id===sid)).filter(Boolean);
+    const servicesTotal = servicesForCalc.reduce((s,sv)=>s+(Number(sv.price)||0),0);
+    const servicesCost = servicesForCalc.reduce((s,sv)=>s+(Number(sv.cost)||0),0);
+    const discount = computeDiscountAmount(servicesTotal, servicesCost, discountReason);
+
+    const candidate = { date, time, serviceIds };
+    const conflict = findConflict(candidate, b?b.id:null);
+
+    const doSave = ()=>{
+      let newBooking = null;
+      if(b){
+        Object.assign(b, {clientId, serviceIds, products, date, time, notes, paymentType, discount, discountReason});
+        delete b.serviceId; // clear legacy single-service field once edited
+        if(b.status==='completed') snapshotBooking(b); // intentional edits still update the frozen figures
+      } else {
+        newBooking = {id:uid(), clientId, serviceIds, products, date, time, notes, paymentType, discount, discountReason, status:'booked'};
+        DATA.bookings.push(newBooking);
+      }
+      saveData(); closeModal(); render();
+      if(newBooking) promptBookingConfirmation(newBooking);
+    };
+
+    if(conflict){
+      const conflictClient = DATA.clients.find(c=>c.id===conflict.clientId);
+      const conflictEnd = timeToMinutes(conflict.time) + bookingDuration(conflict);
+      const conflictEndStr = `${String(Math.floor(conflictEnd/60)).padStart(2,'0')}:${String(conflictEnd%60).padStart(2,'0')}`;
+      confirmModal(`This overlaps with ${conflictClient?conflictClient.name:'another booking'} (${conflict.time}–${conflictEndStr}). Save anyway?`, doSave);
+    } else {
+      doSave();
+    }
+  });
+}
+
+/* ---------- CLIENTS ---------- */
+function renderClients(){
+  const sorted = DATA.clients.filter(c=>!c.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  return `
+    <div class="section-head">
+      <h2>Clients</h2>
+      <button class="btn" id="addClientBtn">+ New client</button>
+    </div>
+    ${sorted.length ? sorted.map(c=>clientRow(c)).join('') : emptyHTML('No clients yet','Add your first client to start booking.')}
+  `;
+}
+function clientRow(c){
+  const bookingCount = DATA.bookings.filter(b=>b.clientId===c.id && !b.archived).length;
+  return `
+    <div class="list-row client-row" data-id="${c.id}" style="cursor:pointer;">
+      <div class="main">
+        <div class="name">${c.name}</div>
+        <div class="sub">${c.phone||'no phone'}${c.email?' · '+c.email:''} · ${bookingCount} visit${bookingCount===1?'':'s'}</div>
+      </div>
+      <div class="side">
+        <button class="btn small secondary edit-client" data-id="${c.id}">Edit</button>
+        <button class="btn small danger del-client" data-id="${c.id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+function wireClients(){
+  document.getElementById('addClientBtn').addEventListener('click', ()=>openClientModal());
+  document.querySelectorAll('.client-row').forEach(row=>{
+    row.addEventListener('click', (e)=>{
+      if(e.target.closest('.edit-client') || e.target.closest('.del-client')) return;
+      openClientDetail(row.dataset.id);
+    });
+  });
+  document.querySelectorAll('.edit-client').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); openClientModal(b.dataset.id); }));
+  document.querySelectorAll('.del-client').forEach(b=>b.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    confirmModal('Archive this client? They\'ll move to the Archive tab and won\'t appear when booking new appointments, but their booking history stays intact and you can restore them anytime.', ()=>{
+      archiveEntity(DATA.clients, b.dataset.id);
+      saveData(); render();
+    });
+  }));
+}
+function fmtDOB(dob){
+  if(!dob) return null;
+  return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(isoToUTCDate(dob));
+}
+function openClientDetail(id){
+  const c = DATA.clients.find(x=>x.id===id);
+  if(!c) return;
+  const today = todayISO();
+  const clientBookings = DATA.bookings.filter(b=>b.clientId===c.id && !b.archived);
+  const upcoming = clientBookings.filter(b=>isActiveBooking(b) && b.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const past = clientBookings.filter(b=>b.status==='completed').sort((a,b)=>b.date.localeCompare(a.date));
+  const totalSpent = past.reduce((sum,b)=> sum + bookingTotal(b), 0);
+  const phoneDigits = c.phone ? c.phone.replace(/[^\d]/g,'') : '';
+
+  const rowLine = (b)=>{
+    return `<div class="list-row booking-open" data-booking-id="${b.id}" style="margin-bottom:8px; cursor:pointer;">
+      <div class="main">
+        <div class="name">${bookingServiceNames(b)}</div>
+        <div class="sub">${fmtDate(b.date)} · ${b.time}${(b.discount>0)?` · ${b.discountReason}`:''}</div>
+      </div>
+      <div class="side"><div style="font-weight:600;">£${bookingTotal(b).toFixed(2)}</div></div>
+    </div>`;
+  };
+
+  openModal(`
+    <h3>${c.name}</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+      <button class="btn small" id="newBookingFromDetail">+ New booking</button>
+      ${phoneDigits ? `<a class="btn small secondary" style="text-decoration:none;" href="https://wa.me/${phoneDigits}" target="_blank">WhatsApp</a>` : ''}
+      ${c.phone ? `<a class="btn small secondary" style="text-decoration:none;" href="tel:${c.phone}">Call</a>` : ''}
+      ${c.email ? `<a class="btn small secondary" style="text-decoration:none;" href="mailto:${c.email}">Email</a>` : ''}
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:18px;">
+      <div class="stat-card"><div class="num">${clientBookings.length}</div><div class="lbl">Total visits</div></div>
+      <div class="stat-card"><div class="num">£${totalSpent.toFixed(2)}</div><div class="lbl">Total spent</div></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field"><label>Phone</label><div style="padding:8px 0;">${c.phone||'—'}</div></div>
+      <div class="field"><label>Email</label><div style="padding:8px 0; word-break:break-all;">${c.email||'—'}</div></div>
+    </div>
+    <div class="field"><label>Address</label><div style="padding:8px 0;">${c.address||'—'}</div></div>
+    <div class="field-row">
+      <div class="field"><label>Date of birth</label><div style="padding:8px 0;">${fmtDOB(c.dob)||'—'}</div></div>
+      <div class="field"><label>Found you via</label><div style="padding:8px 0;">${c.referral||'—'}</div></div>
+    </div>
+    <div class="field"><label>Notes</label><div style="padding:8px 0; white-space:pre-wrap;">${c.notes||'—'}</div></div>
+
+    <h3 style="font-size:1rem; margin-top:22px;">Upcoming (${upcoming.length})</h3>
+    ${upcoming.length ? upcoming.map(rowLine).join('') : '<div class="hint" style="margin-bottom:10px;">No upcoming appointments.</div>'}
+
+    <h3 style="font-size:1rem; margin-top:18px;">Past visits (${past.length})</h3>
+    ${past.length ? past.map(rowLine).join('') : '<div class="hint">No completed visits yet.</div>'}
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Close</button>
+      <button class="btn" id="editFromDetail">Edit details</button>
+    </div>
+  `);
+  document.getElementById('editFromDetail').addEventListener('click', ()=>{ closeModal(); openClientModal(c.id); });
+  document.getElementById('newBookingFromDetail').addEventListener('click', ()=>{ closeModal(); openBookingModal(null, todayISO(), c.id); });
+  document.querySelectorAll('.booking-open').forEach(el=>el.addEventListener('click', ()=>openBookingDetail(el.dataset.bookingId)));
+}
+function openClientModal(id){
+  const c = id ? DATA.clients.find(x=>x.id===id) : null;
+  openModal(`
+    <h3>${c?'Edit client':'New client'}</h3>
+    <div class="field"><label>Name</label><input id="f-name" value="${c?c.name:''}" placeholder="Full name"></div>
+    <div class="field-row">
+      <div class="field"><label>Phone (with country code)</label><input id="f-phone" value="${c?c.phone||'':''}" placeholder="e.g. +44 7700 900123"></div>
+      <div class="field"><label>Email</label><input type="email" id="f-email" value="${c?c.email||'':''}" placeholder="name@example.com"></div>
+    </div>
+    <div class="field"><label>Address</label><textarea id="f-address" placeholder="Street, city, postcode">${c?c.address||'':''}</textarea></div>
+    <div class="field"><label>Date of birth</label><input type="date" id="f-dob" value="${c?c.dob||'':''}"></div>
+    <div class="field"><label>How they found you</label><input id="f-referral" value="${c?c.referral||'':''}" placeholder="e.g. Instagram, referral"></div>
+    <div class="field"><label>Notes (allergies, preferences, patch tests...)</label><textarea id="f-cnotes">${c?c.notes||'':''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Cancel</button>
+      <button class="btn" id="saveClient">${c?'Save changes':'Add client'}</button>
+    </div>
+  `);
+  document.getElementById('saveClient').addEventListener('click', ()=>{
+    const name = document.getElementById('f-name').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+    const address = document.getElementById('f-address').value.trim();
+    const dob = document.getElementById('f-dob').value;
+    const referral = document.getElementById('f-referral').value.trim();
+    const notes = document.getElementById('f-cnotes').value.trim();
+    if(!name){ infoModal('Please enter a name.'); return; }
+    if(c){ Object.assign(c, {name, phone, email, address, dob, referral, notes}); }
+    else { DATA.clients.push({id:uid(), name, phone, email, address, dob, referral, notes, createdAt:todayISO()}); }
+    saveData(); closeModal(); render();
+  });
+}
+
+/* ---------- PRODUCTS ---------- */
+function renderProducts(){
+  const sorted = DATA.products.filter(p=>!p.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  const activeServices = DATA.services.filter(s=>!s.archived);
+  return `
+    <div class="section-head">
+      <h2>Products & Services</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn secondary" id="addServiceBtn">+ Service</button>
+        <button class="btn" id="addProductBtn">+ Product</button>
+      </div>
+    </div>
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:20px 0 10px;">Inventory</h3>
+    ${sorted.length ? sorted.map(p=>productRow(p)).join('') : emptyHTML('No products tracked','Add stock items to track inventory.')}
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:28px 0 10px;">Services</h3>
+    ${activeServices.length ? activeServices.map(s=>serviceRow(s)).join('') : emptyHTML('No services yet','Add a service to offer for booking.')}
+  `;
+}
+function productRow(p){
+  const low = p.stock<=p.threshold;
+  return `
+    <div class="list-row">
+      <div class="main">
+        <div class="name">${p.name} ${low?'<span class="tag-lowstock">low stock</span>':''}</div>
+        <div class="sub">${p.stock} in stock · reorder at ${p.threshold} · sells £${p.price} · cost £${p.costPrice||0}</div>
+      </div>
+      <div class="side">
+        <button class="btn small secondary stock-minus" data-id="${p.id}">−</button>
+        <button class="btn small secondary stock-plus" data-id="${p.id}">+</button>
+        <button class="btn small secondary edit-product" data-id="${p.id}">Edit</button>
+        <button class="btn small danger del-product" data-id="${p.id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+function serviceRow(s){
+  return `
+    <div class="list-row">
+      <div class="main">
+        <div class="name">${s.name}</div>
+        <div class="sub">£${s.price} charged · £${s.cost||0} cost · ${s.duration} min</div>
+      </div>
+      <div class="side">
+        <button class="btn small secondary edit-service" data-id="${s.id}">Edit</button>
+        <button class="btn small danger del-service" data-id="${s.id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+function wireProducts(){
+  document.getElementById('addProductBtn').addEventListener('click', ()=>openProductModal());
+  document.getElementById('addServiceBtn').addEventListener('click', ()=>openServiceModal());
+  document.querySelectorAll('.stock-plus').forEach(b=>b.addEventListener('click', ()=>{
+    const p = DATA.products.find(x=>x.id===b.dataset.id); p.stock++; saveData(); render();
+  }));
+  document.querySelectorAll('.stock-minus').forEach(b=>b.addEventListener('click', ()=>{
+    const p = DATA.products.find(x=>x.id===b.dataset.id); p.stock=Math.max(0,p.stock-1); saveData(); render();
+  }));
+  document.querySelectorAll('.edit-product').forEach(b=>b.addEventListener('click', ()=>openProductModal(b.dataset.id)));
+  document.querySelectorAll('.edit-service').forEach(b=>b.addEventListener('click', ()=>openServiceModal(b.dataset.id)));
+  document.querySelectorAll('.del-product').forEach(b=>b.addEventListener('click', ()=>{
+    confirmModal('Archive this product? It moves to the Archive tab and won\'t show up when adding it to bookings, but past bookings that used it are unaffected. You can restore it anytime.', ()=>{
+      archiveEntity(DATA.products, b.dataset.id); saveData(); render();
+    });
+  }));
+  document.querySelectorAll('.del-service').forEach(b=>b.addEventListener('click', ()=>{
+    confirmModal('Archive this service? It moves to the Archive tab and won\'t show up when adding it to bookings, but past bookings that used it are unaffected. You can restore it anytime.', ()=>{
+      archiveEntity(DATA.services, b.dataset.id); saveData(); render();
+    });
+  }));
+}
+function openProductModal(id){
+  const p = id ? DATA.products.find(x=>x.id===id) : null;
+  openModal(`
+    <h3>${p?'Edit product':'New product'}</h3>
+    <div class="field"><label>Name</label><input id="f-pname" placeholder="e.g. Shampoo 1L" value="${p?p.name:''}"></div>
+    <div class="field-row">
+      <div class="field"><label>Current stock</label><input type="number" id="f-pstock" value="${p?p.stock:0}"></div>
+      <div class="field"><label>Reorder at</label><input type="number" id="f-pthresh" value="${p?p.threshold:2}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sell price (£)</label><input type="number" id="f-pprice" value="${p?p.price:0}"></div>
+      <div class="field"><label>Cost price, pre-tax (£)</label><input type="number" id="f-pcost" value="${p?(p.costPrice||0):0}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Cancel</button>
+      <button class="btn" id="saveProduct">${p?'Save changes':'Add product'}</button>
+    </div>
+  `);
+  document.getElementById('saveProduct').addEventListener('click', ()=>{
+    const name = document.getElementById('f-pname').value.trim();
+    if(!name){ infoModal('Please enter a product name.'); return; }
+    const values = {
+      name,
+      stock:Number(document.getElementById('f-pstock').value)||0,
+      threshold:Number(document.getElementById('f-pthresh').value)||0,
+      price:Number(document.getElementById('f-pprice').value)||0,
+      costPrice:Number(document.getElementById('f-pcost').value)||0,
+    };
+    if(p){ Object.assign(p, values); }
+    else { DATA.products.push(Object.assign({id:uid()}, values)); }
+    saveData(); closeModal(); render();
+  });
+}
+function openServiceModal(id){
+  const s = id ? DATA.services.find(x=>x.id===id) : null;
+  openModal(`
+    <h3>${s?'Edit service':'New service'}</h3>
+    <div class="field"><label>Name</label><input id="f-sname" placeholder="e.g. Gel Manicure" value="${s?s.name:''}"></div>
+    <div class="field-row">
+      <div class="field"><label>Price charged (£)</label><input type="number" id="f-sprice" value="${s?s.price:0}"></div>
+      <div class="field"><label>Duration (min)</label><input type="number" id="f-sdur" value="${s?s.duration:30}"></div>
+    </div>
+    <div class="field"><label>Product/material cost, pre-tax (£)</label><input type="number" id="f-scost" value="${s?(s.cost||0):0}"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Cancel</button>
+      <button class="btn" id="saveService">${s?'Save changes':'Add service'}</button>
+    </div>
+  `);
+  document.getElementById('saveService').addEventListener('click', ()=>{
+    const name = document.getElementById('f-sname').value.trim();
+    if(!name){ infoModal('Please enter a service name.'); return; }
+    const values = {
+      name,
+      price:Number(document.getElementById('f-sprice').value)||0,
+      duration:Number(document.getElementById('f-sdur').value)||0,
+      cost:Number(document.getElementById('f-scost').value)||0,
+    };
+    if(s){ Object.assign(s, values); }
+    else { DATA.services.push(Object.assign({id:uid()}, values)); }
+    saveData(); closeModal(); render();
+  });
+}
+
+/* ---------- EARNINGS ---------- */
+function endOfMonthISO(monthPrefix){
+  const [y,m] = monthPrefix.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${monthPrefix}-${String(last).padStart(2,'0')}`;
+}
+function computeEarnings(startISO, endISO){
+  const completed = DATA.bookings.filter(b=>b.status==='completed' && !b.archived && b.date>=startISO && b.date<=endISO);
+  let revenue=0, cost=0, totalDiscount=0;
+  const byPayment = { cash:0, bank_transfer:0, unset:0 };
+  completed.forEach(b=>{
+    const price = bookingTotal(b);
+    revenue += price;
+    cost += bookingTotalCost(b);
+    totalDiscount += Number(b.discount)||0;
+    if(b.paymentType==='cash') byPayment.cash += price;
+    else if(b.paymentType==='bank_transfer') byPayment.bank_transfer += price;
+    else byPayment.unset += price;
+  });
+  return { completed, revenue, cost, grossProfit: revenue-cost, byPayment, totalDiscount };
+}
+function renderEarnings(){
+  const today = todayISO();
+  const thisMonth = today.slice(0,7);
+  const year = today.slice(0,4);
+
+  let startISO, endISO, rangeLabel;
+  if(earningsPeriod==='mtd'){ startISO = thisMonth+'-01'; endISO = today; rangeLabel = 'Month to date'; }
+  else if(earningsPeriod==='ytd'){ startISO = year+'-01-01'; endISO = today; rangeLabel = 'Year to date'; }
+  else if(earningsPeriod==='all'){ startISO = '0000-01-01'; endISO = '9999-12-31'; rangeLabel = 'All time'; }
+  else { startISO = earningsCustom.start; endISO = earningsCustom.end; rangeLabel = `${fmtDate(startISO)} – ${fmtDate(endISO)}`; }
+
+  const { completed, revenue, cost, grossProfit, byPayment, totalDiscount } = computeEarnings(startISO, endISO);
+  const taxRate = DATA.taxRate!=null ? DATA.taxRate : 20;
+  const estTax = Math.max(0, grossProfit) * (taxRate/100);
+  const netProfit = grossProfit - estTax;
+
+  // Forecast: upcoming bookings remaining this month
+  const monthEnd = endOfMonthISO(thisMonth);
+  const forecastBookings = DATA.bookings.filter(b=>isActiveBooking(b) && !b.archived && b.date>=today && b.date<=monthEnd);
+  const forecastRevenue = forecastBookings.reduce((sum,b)=> sum + bookingTotal(b), 0);
+  const mtdCompletedRevenue = computeEarnings(thisMonth+'-01', today).revenue;
+  const projectedMonthTotal = mtdCompletedRevenue + forecastRevenue;
+
+  return `
+    <div class="section-head"><h2>Earnings</h2></div>
+    <div class="view-toggle">
+      <button data-period="mtd" class="${earningsPeriod==='mtd'?'active':''}">MTD</button>
+      <button data-period="ytd" class="${earningsPeriod==='ytd'?'active':''}">YTD</button>
+      <button data-period="all" class="${earningsPeriod==='all'?'active':''}">All time</button>
+      <button data-period="custom" class="${earningsPeriod==='custom'?'active':''}">Custom</button>
+    </div>
+    ${earningsPeriod==='custom' ? `
+      <div class="template-box" style="margin-bottom:16px;">
+        <div class="field-row">
+          <div class="field"><label>From</label><input type="date" id="f-custom-start" value="${earningsCustom.start}"></div>
+          <div class="field"><label>To</label><input type="date" id="f-custom-end" value="${earningsCustom.end}"></div>
+        </div>
+        <button class="btn small" id="applyCustomRange">Apply</button>
+      </div>
+    ` : ''}
+
+    <h3 style="font-size:0.95rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px;">${rangeLabel}</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">£${revenue.toFixed(2)}</div><div class="lbl">Revenue</div></div>
+      <div class="stat-card"><div class="num">£${cost.toFixed(2)}</div><div class="lbl">Product/material cost</div></div>
+      <div class="stat-card"><div class="num">£${grossProfit.toFixed(2)}</div><div class="lbl">Gross profit</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--blush)">£${estTax.toFixed(2)}</div><div class="lbl">Est. tax set-aside</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--danger)">£${totalDiscount.toFixed(2)}</div><div class="lbl">Discounts given</div></div>
+    </div>
+
+    <div class="template-box">
+      <label>Payment type breakdown (${rangeLabel.toLowerCase()})</label>
+      <div class="list-row" style="margin-bottom:8px;"><div class="main"><div class="name">Cash</div></div><div class="side"><div style="font-weight:600;">£${byPayment.cash.toFixed(2)}</div></div></div>
+      <div class="list-row" style="margin-bottom:8px;"><div class="main"><div class="name">Bank transfer</div></div><div class="side"><div style="font-weight:600;">£${byPayment.bank_transfer.toFixed(2)}</div></div></div>
+      <div class="list-row" style="margin-bottom:0;"><div class="main"><div class="name">Not recorded</div></div><div class="side"><div style="font-weight:600; color:var(--paper-dim);">£${byPayment.unset.toFixed(2)}</div></div></div>
+    </div>
+
+    <div class="template-box" style="border-color:var(--gold);">
+      <label>Projected earnings — rest of ${monthLabel(thisMonth+'-01')}</label>
+      <div class="stat-grid" style="margin-bottom:0;">
+        <div class="stat-card"><div class="num">£${forecastRevenue.toFixed(2)}</div><div class="lbl">Upcoming, unbilled</div></div>
+        <div class="stat-card"><div class="num">£${projectedMonthTotal.toFixed(2)}</div><div class="lbl">Projected month total</div></div>
+      </div>
+      <div class="hint" style="margin-top:10px;">Projected total = earnings already completed this month (£${mtdCompletedRevenue.toFixed(2)}) + confirmed upcoming bookings still to come. Cancellations aren't counted.</div>
+    </div>
+
+    <div class="template-box">
+      <label>Estimated tax rate to set aside (%)</label>
+      <input type="number" id="f-taxrate" value="${taxRate}" style="width:100%; background:var(--paper); border:1px solid var(--line); color:var(--ink); padding:11px 12px; border-radius:8px; font-size:0.94rem;">
+      <div class="hint">Based on ${completed.length} completed booking${completed.length===1?'':'s'} in this range. Net profit after set-aside: <strong style="color:var(--gold-soft)">£${netProfit.toFixed(2)}</strong></div>
+      <div class="hint" style="margin-top:10px;">This is a simple estimate, not tax advice — it applies one flat rate to your profit from this app only. As a self-employed sole trader your actual Income Tax and Class 4 National Insurance depend on your total income across the year, personal allowance, and any other earnings. You're not VAT registered, so no VAT is added here. Check your figures with HMRC or an accountant before setting money aside for real.</div>
+      <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
+        <button class="btn small secondary" id="saveTaxRate">Save rate</button>
+      </div>
+    </div>
+
+    <div class="section-head"><h2 style="font-size:1.1rem;">Completed bookings — ${rangeLabel.toLowerCase()}</h2></div>
+    ${completed.length ? completed.sort((a,b)=>b.date.localeCompare(a.date)).map(b=>earningsRow(b)).join('') : emptyHTML('No completed bookings in this range','Mark bookings as Completed to see earnings here.')}
+  `;
+}
+function earningsRow(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const payLabel = paymentLabel(b.paymentType) || 'Not recorded';
+  return `
+    <div class="list-row booking-open" data-booking-id="${b.id}" style="cursor:pointer;">
+      <div class="main">
+        <div class="name">${client?client.name:'Unknown client'} · ${bookingServiceNames(b)}</div>
+        <div class="sub">${fmtDate(b.date)} · ${payLabel}${(b.discount>0)?` · ${b.discountReason}`:''}</div>
+      </div>
+      <div class="side">
+        <div style="text-align:right;">
+          <div style="font-weight:600;">£${bookingTotal(b).toFixed(2)}</div>
+          <div style="font-size:0.74rem; color:var(--paper-dim);">cost £${bookingTotalCost(b).toFixed(2)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function wireEarnings(){
+  document.querySelectorAll('.view-toggle button[data-period]').forEach(b=>{
+    b.addEventListener('click', ()=>{ earningsPeriod = b.dataset.period; render(); });
+  });
+  const applyBtn = document.getElementById('applyCustomRange');
+  if(applyBtn) applyBtn.addEventListener('click', ()=>{
+    earningsCustom.start = document.getElementById('f-custom-start').value || earningsCustom.start;
+    earningsCustom.end = document.getElementById('f-custom-end').value || earningsCustom.end;
+    render();
+  });
+  document.getElementById('saveTaxRate').addEventListener('click', ()=>{
+    DATA.taxRate = Number(document.getElementById('f-taxrate').value)||0;
+    saveData(); showToast('Tax rate saved');
+  });
+  document.querySelectorAll('.booking-open').forEach(el=>el.addEventListener('click', ()=>openBookingDetail(el.dataset.bookingId)));
+}
+
+/* ---------- REMINDERS ---------- */
+function renderReminders(){
+  const today = todayISO();
+  const windowEnd = addDays(today, 2);
+  const upcoming = DATA.bookings
+    .filter(b=>isActiveBooking(b) && !b.archived && b.date>=today && b.date<=windowEnd)
+    .sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+  const needsSending = upcoming.filter(b=>!b.reminderSentAt);
+  const alreadySent = upcoming.filter(b=>b.reminderSentAt);
+
+  return `
+    <div class="section-head"><h2>Reminders</h2></div>
+    <div class="template-box">
+      <label>Reminder message template</label>
+      <textarea id="f-template" rows="3">${DATA.template || DEFAULT_TEMPLATE}</textarea>
+      <div class="hint">Use <code>{name}</code>, <code>{service}</code>, <code>{date}</code>, <code>{time}</code> — they'll be filled in automatically.</div>
+      <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
+        <button class="btn small secondary" id="saveTemplate">Save template</button>
+      </div>
+    </div>
+    <div class="template-box">
+      <label>Booking confirmation template</label>
+      <textarea id="f-confirm-template" rows="3">${DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE}</textarea>
+      <div class="hint">Sent as a one-tap prompt right after you create a new booking.</div>
+      <div class="modal-actions" style="justify-content:flex-start; margin-top:12px;">
+        <button class="btn small secondary" id="saveConfirmTemplate">Save template</button>
+      </div>
+    </div>
+    <div class="section-head"><h2 style="font-size:1.1rem;">Needs sending (${needsSending.length})</h2></div>
+    ${needsSending.length ? needsSending.map(b=>reminderCard(b)).join('') : emptyHTML('All caught up','Nothing left to remind anyone about right now.')}
+    ${alreadySent.length ? `
+      <div class="section-head" style="margin-top:24px;"><h2 style="font-size:1.1rem;">Already sent (${alreadySent.length})</h2></div>
+      ${alreadySent.map(b=>reminderCard(b)).join('')}
+    ` : ''}
+  `;
+}
+function buildConfirmationMessage(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const t = DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE;
+  return t
+    .replaceAll('{name}', client?client.name.split(' ')[0]:'there')
+    .replaceAll('{service}', bookingServiceNames(b) !== '—' ? bookingServiceNames(b) : 'your appointment')
+    .replaceAll('{date}', fmtDate(b.date))
+    .replaceAll('{time}', b.time);
+}
+function promptBookingConfirmation(booking){
+  const client = DATA.clients.find(c=>c.id===booking.clientId);
+  const msg = buildConfirmationMessage(booking);
+  const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
+  const hasContact = phoneDigits || (client && client.email);
+  openModal(`
+    <h3>Send booking confirmation?</h3>
+    <div class="hint" style="margin-top:0; margin-bottom:12px;">To ${client?client.name:'this client'}</div>
+    <div class="msg-preview">${msg}</div>
+    ${!hasContact ? `<div class="hint" style="margin-top:10px;">No phone number or email on file for this client — add one to their profile to send a confirmation.</div>` : ''}
+    <div class="modal-actions" style="flex-wrap:wrap; margin-top:16px;">
+      <button class="btn secondary" id="cancelModal">Skip</button>
+      ${client&&client.email ? `<a class="btn secondary" style="text-decoration:none;" href="mailto:${client.email}?subject=${encodeURIComponent('Your appointment is booked')}&body=${encodeURIComponent(msg)}" id="confirmEmailLink">Send Email</a>` : ''}
+      ${phoneDigits ? `<a class="btn" style="text-decoration:none;" href="https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}" target="_blank" id="confirmWaLink">Send WhatsApp</a>` : ''}
+    </div>
+  `);
+}
+function buildMessage(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const t = DATA.template || DEFAULT_TEMPLATE;
+  return t
+    .replaceAll('{name}', client?client.name.split(' ')[0]:'there')
+    .replaceAll('{service}', bookingServiceNames(b) !== '—' ? bookingServiceNames(b) : 'your appointment')
+    .replaceAll('{date}', fmtDate(b.date))
+    .replaceAll('{time}', b.time);
+}
+function markReminderSent(bookingId){
+  const b = DATA.bookings.find(x=>x.id===bookingId);
+  if(!b) return;
+  b.reminderSentAt = new Date().toISOString();
+  saveData();
+  render();
+}
+function reminderCard(b){
+  const client = DATA.clients.find(c=>c.id===b.clientId);
+  const msg = buildMessage(b);
+  const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
+  const sent = !!b.reminderSentAt;
+  return `
+    <div class="reminder-card" style="${sent?'opacity:0.75;':''}">
+      <div class="top">
+        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}</div>
+        <div class="when">${fmtDate(b.date)} · ${b.time}</div>
+      </div>
+      ${sent ? `<div class="hint" style="color:#3F7A4F; margin-top:0; margin-bottom:10px; font-weight:600;">Sent ${fmtDateTime(b.reminderSentAt)}</div>` : ''}
+      <div class="msg-preview">${msg}</div>
+      <div class="send-row">
+        ${phoneDigits ? `
+          <a class="btn small send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}" target="_blank">${sent?'Resend WhatsApp':'Send on WhatsApp'}</a>
+          <a class="btn small secondary send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="sms:${phoneDigits}?body=${encodeURIComponent(msg)}">${sent?'Resend text':'Send as text'}</a>
+        ` : ''}
+        ${client&&client.email ? `<a class="btn small secondary send-reminder-link" data-booking-id="${b.id}" style="text-decoration:none;" href="mailto:${client.email}?subject=${encodeURIComponent('Appointment reminder')}&body=${encodeURIComponent(msg)}">${sent?'Resend email':'Send email'}</a>` : ''}
+        ${(!phoneDigits && !(client&&client.email)) ? `<span class="tag-lowstock" style="border-color:var(--paper-dim); color:var(--paper-dim);">no phone or email on file</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+function wireReminders(){
+  document.getElementById('saveTemplate').addEventListener('click', ()=>{
+    DATA.template = document.getElementById('f-template').value;
+    saveData(); showToast('Template saved');
+  });
+  document.getElementById('saveConfirmTemplate').addEventListener('click', ()=>{
+    DATA.confirmationTemplate = document.getElementById('f-confirm-template').value;
+    saveData(); showToast('Template saved');
+  });
+  document.querySelectorAll('.send-reminder-link').forEach(link=>{
+    link.addEventListener('click', ()=>{
+      // Don't preventDefault — the WhatsApp/SMS link still opens as normal, we just log it too.
+      markReminderSent(link.dataset.bookingId);
+    });
+  });
+}
+
+/* ---------- ARCHIVE ---------- */
+function renderArchive(){
+  const archivedClients = DATA.clients.filter(c=>c.archived);
+  const archivedServices = DATA.services.filter(s=>s.archived);
+  const archivedProducts = DATA.products.filter(p=>p.archived);
+  const archivedBookings = DATA.bookings.filter(b=>b.archived).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+
+  const archiveRow = (name, sub, entityType, id) => `
+    <div class="list-row">
+      <div class="main"><div class="name">${name}</div><div class="sub">${sub}</div></div>
+      <div class="side">
+        <button class="btn small secondary restore-item" data-type="${entityType}" data-id="${id}">Restore</button>
+        <button class="btn small danger perm-delete-item" data-type="${entityType}" data-id="${id}">Delete forever</button>
+      </div>
+    </div>
+  `;
+
+  return `
+    <div class="section-head"><h2>Archive</h2></div>
+    <div class="hint" style="margin-bottom:20px;">Archived items are hidden from the rest of the app but kept here. Restore anytime, or delete forever if you're sure — that part really can't be undone.</div>
+
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px;">Clients (${archivedClients.length})</h3>
+    ${archivedClients.length ? archivedClients.map(c=>archiveRow(c.name, c.phone||'no phone', 'clients', c.id)).join('') : '<div class="hint" style="margin-bottom:20px;">Nothing archived.</div>'}
+
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:24px 0 10px;">Bookings (${archivedBookings.length})</h3>
+    ${archivedBookings.length ? archivedBookings.map(b=>{
+      const client = DATA.clients.find(c=>c.id===b.clientId);
+      return archiveRow(`${client?client.name:'Unknown client'} — ${bookingServiceNames(b)}`, `${fmtDate(b.date)} · ${b.time}`, 'bookings', b.id);
+    }).join('') : '<div class="hint" style="margin-bottom:20px;">Nothing archived.</div>'}
+
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:24px 0 10px;">Services (${archivedServices.length})</h3>
+    ${archivedServices.length ? archivedServices.map(s=>archiveRow(s.name, `£${s.price} · ${s.duration} min`, 'services', s.id)).join('') : '<div class="hint" style="margin-bottom:20px;">Nothing archived.</div>'}
+
+    <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:24px 0 10px;">Products (${archivedProducts.length})</h3>
+    ${archivedProducts.length ? archivedProducts.map(p=>archiveRow(p.name, `£${p.price}`, 'products', p.id)).join('') : '<div class="hint">Nothing archived.</div>'}
+  `;
+}
+function wireArchive(){
+  document.querySelectorAll('.restore-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      restoreEntity(DATA[btn.dataset.type], btn.dataset.id);
+      saveData(); render();
+    });
+  });
+  document.querySelectorAll('.perm-delete-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      confirmModal('Permanently delete this? This truly cannot be undone — it will be gone for good, including from your Google Sheet.', ()=>{
+        permanentlyDeleteEntity(btn.dataset.type, btn.dataset.id);
+        saveData(); render();
+      });
+    });
+  });
+}
+
+/* ---------- MODAL HELPERS ---------- */
+function openModal(html){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `<div class="modal">${html}</div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
+  const cancelBtn = overlay.querySelector('#cancelModal');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>overlay.remove());
+  return overlay;
+}
+function closeModal(){
+  const overlays = document.querySelectorAll('.overlay');
+  if(overlays.length) overlays[overlays.length-1].remove();
+}
+function confirmModal(message, onConfirm){
+  const overlay = openModal(`
+    <h3>Are you sure?</h3>
+    <p style="color:var(--paper-dim); margin:0 0 4px 0; line-height:1.5;">${message}</p>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Cancel</button>
+      <button class="btn danger" id="confirmYes" style="background:var(--danger); color:var(--on-accent); border:none;">Yes, continue</button>
+    </div>
+  `);
+  overlay.querySelector('#confirmYes').addEventListener('click', ()=>{
+    overlay.remove();
+    onConfirm();
+  });
+}
+function infoModal(message){
+  openModal(`
+    <h3>Heads up</h3>
+    <p style="color:var(--paper-dim); margin:0 0 4px 0; line-height:1.5;">${message}</p>
+    <div class="modal-actions">
+      <button class="btn" id="cancelModal">Okay</button>
+    </div>
+  `);
+}
+
+loadData();
+</script>
+</body>
+</html>
