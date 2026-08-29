@@ -533,9 +533,10 @@ main{padding:22px 20px;}
    See google-apps-script.js for the backend code and setup steps.
    APP_SECRET_KEY must exactly match SHARED_SECRET in the Apps Script.
    ============================================================ */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxUStC_U35a-0tadtNE1LzqQrqFAdt6EMeR5gOr6TEEMIye_uNWKGeD6CCa-YksG01tNw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxEVn2tiXz4y4inw8ZhHify-B9vDiybEEppLrx6r2KpbJV2VSNqiCy1i4FokBqPKsJQyQ/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
-const BUILD_VERSION = 'build-diag-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const BUILD_VERSION = 'build-newurl-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const APP_PASSWORD = 'harmony2026'; // change this to whatever you and your girlfriend want — it's a simple deterrent, not real security (see the note where this is checked below)
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
 let currentTab = 'dashboard';
@@ -559,24 +560,37 @@ function todayISO(){
   return fmt.format(new Date()); // en-CA locale formats as YYYY-MM-DD
 }
 function isoToUTCDate(iso){
-  const [y,m,d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(y, m-1, d));
+  if(!iso) return null;
+  const datePart = String(iso).split('T')[0]; // tolerate full timestamps like "2026-08-29T00:00:00.000Z"
+  const parts = datePart.split('-').map(Number);
+  if(parts.length<3 || parts.some(n=>Number.isNaN(n))) return null;
+  const d = new Date(Date.UTC(parts[0], parts[1]-1, parts[2]));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 function fmtDate(iso){
-  return new Intl.DateTimeFormat('en-GB', {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'}).format(isoToUTCDate(iso));
+  const d = isoToUTCDate(iso);
+  if(!d) return '—';
+  return new Intl.DateTimeFormat('en-GB', {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'}).format(d);
 }
-function dayNum(iso){ return Number(iso.split('-')[2]); }
+function dayNum(iso){
+  const d = isoToUTCDate(iso);
+  return d ? d.getUTCDate() : '—';
+}
 function monShort(iso){
-  return new Intl.DateTimeFormat('en-GB', {month:'short', timeZone:'UTC'}).format(isoToUTCDate(iso)).toUpperCase();
+  const d = isoToUTCDate(iso);
+  if(!d) return '';
+  return new Intl.DateTimeFormat('en-GB', {month:'short', timeZone:'UTC'}).format(d).toUpperCase();
 }
 function addDays(iso,n){
   const d = isoToUTCDate(iso);
+  if(!d) return iso;
   d.setUTCDate(d.getUTCDate()+n);
   return d.toISOString().slice(0,10);
 }
 function fmtDateTime(iso){
   if(!iso) return '';
   const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
   const datePart = new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', timeZone:'Europe/London'}).format(d);
   const timePart = new Intl.DateTimeFormat('en-GB', {hour:'2-digit', minute:'2-digit', timeZone:'Europe/London'}).format(d);
   return `${datePart} at ${timePart}`;
@@ -1433,8 +1447,9 @@ function wireClients(){
   }));
 }
 function fmtDOB(dob){
-  if(!dob) return null;
-  return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(isoToUTCDate(dob));
+  const d = isoToUTCDate(dob);
+  if(!d) return null;
+  return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(d);
 }
 function openClientDetail(id){
   try{ openClientDetailInner(id); }
@@ -2015,7 +2030,50 @@ function infoModal(message){
   `);
 }
 
-loadData();
+/* ---------- PASSWORD GATE ----------
+   This is a simple client-side deterrent, not real security — the password
+   check happens in the browser, so anyone who deliberately reads the page's
+   source code could find APP_PASSWORD above. It's meant to stop casual/
+   accidental access (e.g. the link getting shared somewhere it shouldn't),
+   not to withstand a determined technical visitor. Real, unbypassable
+   protection would need a paid Netlify plan or a proper backend. */
+function showPasswordGate(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div style="max-width:340px; width:100%; text-align:center;">
+        <div class="mark" style="font-size:1.6rem; margin-bottom:6px;">Harmonious <span>Beauty</span></div>
+        <div class="tag" style="margin-bottom:28px;">Salon Booking</div>
+        <div class="field" style="text-align:left;">
+          <label>Password</label>
+          <input type="password" id="gatePassword" placeholder="Enter password" autofocus>
+        </div>
+        <div id="gateError" class="hint" style="color:var(--danger); min-height:20px; margin-top:4px;"></div>
+        <button class="btn" id="gateSubmit" style="width:100%; margin-top:10px;">Unlock</button>
+      </div>
+    </div>
+  `;
+  const submit = ()=>{
+    const entered = document.getElementById('gatePassword').value;
+    if(entered === APP_PASSWORD){
+      localStorage.setItem('hb_unlocked', 'true');
+      loadData();
+    } else {
+      document.getElementById('gateError').textContent = 'Incorrect password.';
+    }
+  };
+  document.getElementById('gateSubmit').addEventListener('click', submit);
+  document.getElementById('gatePassword').addEventListener('keydown', (e)=>{ if(e.key==='Enter') submit(); });
+}
+function checkPasswordGate(){
+  if(localStorage.getItem('hb_unlocked') === 'true'){
+    loadData();
+  } else {
+    showPasswordGate();
+  }
+}
+
+checkPasswordGate();
 </script>
 </body>
 </html>
