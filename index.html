@@ -535,7 +535,7 @@ main{padding:22px 20px;}
    ============================================================ */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNIOmHMh3n8UOPaLhjz_aXvcOMXYpzJaYUH5LnF3GZmGt6cQknFF6caWBrjinZgp5m/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
-const BUILD_VERSION = 'build-newurl-4'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const BUILD_VERSION = 'build-reviewstep-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
 const APP_PASSWORD = 'harmony2026'; // change this to whatever you and your girlfriend want — it's a simple deterrent, not real security (see the note where this is checked below)
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
@@ -1381,29 +1381,75 @@ function openBookingModalInner(id, defaultDate, defaultClientId){
 
     const candidate = { date, time, serviceIds };
     const conflict = findConflict(candidate, b?b.id:null);
+    const bookingData = {clientId, serviceIds, products, date, time, notes, paymentType, discount, discountReason};
 
-    const doSave = ()=>{
-      let newBooking = null;
-      if(b){
-        Object.assign(b, {clientId, serviceIds, products, date, time, notes, paymentType, discount, discountReason});
+    if(b){
+      // Editing an existing booking — saves directly, no review step or auto-send.
+      const doEditSave = ()=>{
+        Object.assign(b, bookingData);
         delete b.serviceId; // clear legacy single-service field once edited
         if(b.status==='completed') snapshotBooking(b); // intentional edits still update the frozen figures
+        saveData(); closeModal(); render();
+      };
+      if(conflict){
+        const conflictClient = DATA.clients.find(c=>c.id===conflict.clientId);
+        const conflictEnd = timeToMinutes(conflict.time) + bookingDuration(conflict);
+        const conflictEndStr = `${String(Math.floor(conflictEnd/60)).padStart(2,'0')}:${String(conflictEnd%60).padStart(2,'0')}`;
+        confirmModal(`This overlaps with ${conflictClient?conflictClient.name:'another booking'} (${conflict.time}–${conflictEndStr}). Save anyway?`, doEditSave);
       } else {
-        newBooking = {id:uid(), clientId, serviceIds, products, date, time, notes, paymentType, discount, discountReason, status:'booked'};
-        DATA.bookings.push(newBooking);
+        doEditSave();
       }
-      saveData(); closeModal(); render();
-      if(newBooking) promptBookingConfirmation(newBooking);
-    };
-
-    if(conflict){
-      const conflictClient = DATA.clients.find(c=>c.id===conflict.clientId);
-      const conflictEnd = timeToMinutes(conflict.time) + bookingDuration(conflict);
-      const conflictEndStr = `${String(Math.floor(conflictEnd/60)).padStart(2,'0')}:${String(conflictEnd%60).padStart(2,'0')}`;
-      confirmModal(`This overlaps with ${conflictClient?conflictClient.name:'another booking'} (${conflict.time}–${conflictEndStr}). Save anyway?`, doSave);
     } else {
-      doSave();
+      // Creating a new booking — show a review step before actually committing and sending.
+      const proceedToConfirmStep = ()=> showBookingConfirmStep(bookingData);
+      if(conflict){
+        const conflictClient = DATA.clients.find(c=>c.id===conflict.clientId);
+        const conflictEnd = timeToMinutes(conflict.time) + bookingDuration(conflict);
+        const conflictEndStr = `${String(Math.floor(conflictEnd/60)).padStart(2,'0')}:${String(conflictEnd%60).padStart(2,'0')}`;
+        confirmModal(`This overlaps with ${conflictClient?conflictClient.name:'another booking'} (${conflict.time}–${conflictEndStr}). Continue anyway?`, proceedToConfirmStep);
+      } else {
+        proceedToConfirmStep();
+      }
     }
+  });
+}
+
+function showBookingConfirmStep(bookingData){
+  const { clientId, serviceIds, products, date, time, discount } = bookingData;
+  const client = DATA.clients.find(c=>c.id===clientId);
+  const services = serviceIds.map(id=>DATA.services.find(s=>s.id===id)).filter(Boolean);
+  const serviceNames = services.map(s=>s.name).join(', ') || '—';
+  const servicesTotal = services.reduce((sum,s)=>sum+(Number(s.price)||0),0);
+  const productsTotal = products.reduce((sum,p)=>{
+    const prod = DATA.products.find(x=>x.id===p.productId);
+    return sum + (prod ? (Number(prod.price)||0)*p.qty : 0);
+  }, 0);
+  const total = Math.max(0, servicesTotal + productsTotal - discount);
+
+  openModal(`
+    <h3>Confirm booking & send message</h3>
+    <div class="list-row" style="margin-bottom:16px;">
+      <div class="main">
+        <div class="name">${client?client.name:'Unknown client'}</div>
+        <div class="sub">${serviceNames} · ${fmtDate(date)} · ${time}</div>
+      </div>
+      <div class="side"><div style="font-weight:600;">£${total.toFixed(2)}</div></div>
+    </div>
+    <div class="hint" style="margin-bottom:0;">Tapping Confirm creates this booking and sends a confirmation text automatically.</div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelModal">Back</button>
+      <button class="btn" id="confirmCreateBookingBtn">Confirm</button>
+    </div>
+  `);
+
+  document.getElementById('confirmCreateBookingBtn').addEventListener('click', ()=>{
+    const newBooking = Object.assign({id:uid(), status:'booked'}, bookingData);
+    DATA.bookings.push(newBooking);
+    saveData();
+    closeModal(); // this confirm step
+    closeModal(); // the booking form underneath
+    render();
+    promptBookingConfirmation(newBooking);
   });
 }
 
