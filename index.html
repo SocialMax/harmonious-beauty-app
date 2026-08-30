@@ -533,9 +533,9 @@ main{padding:22px 20px;}
    See google-apps-script.js for the backend code and setup steps.
    APP_SECRET_KEY must exactly match SHARED_SECRET in the Apps Script.
    ============================================================ */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYjDIUpmnThM-UyO7zXVRQLJkDR30thKzWVxY1SVEsHh5DheAhb9k5rZ6WoDzkQTOmBA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNIOmHMh3n8UOPaLhjz_aXvcOMXYpzJaYUH5LnF3GZmGt6cQknFF6caWBrjinZgp5m/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
-const BUILD_VERSION = 'build-newurl-3'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const BUILD_VERSION = 'build-newurl-4'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
 const APP_PASSWORD = 'harmony2026'; // change this to whatever you and your girlfriend want — it's a simple deterrent, not real security (see the note where this is checked below)
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
@@ -1896,16 +1896,45 @@ function fillMessageTemplate(t, b){
 function buildConfirmationMessage(b){
   return fillMessageTemplate(DATA.confirmationTemplate || DEFAULT_CONFIRMATION_TEMPLATE, b);
 }
-function promptBookingConfirmation(booking){
+async function sendSMSViaTwilio(to, message){
+  if(!isConfigured()) return false;
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ key: APP_SECRET_KEY, action: 'sendSMS', to, message }),
+    });
+    const json = await res.json();
+    return !!json.ok;
+  }catch(e){
+    return false;
+  }
+}
+async function promptBookingConfirmation(booking){
   const client = DATA.clients.find(c=>c.id===booking.clientId);
   const msg = buildConfirmationMessage(booking);
   const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
+
+  // The booking itself is already confirmed by having been created — this
+  // just needs to send the text automatically, no extra tap required.
+  if(phoneDigits){
+    const sent = await sendSMSViaTwilio(phoneDigits, msg);
+    if(sent){
+      showToast('Booking confirmed — text sent ✓');
+      return;
+    }
+  }
+  // Only reached if there's no phone number, or the automatic send failed —
+  // a genuine fallback, not the normal path.
+  showManualConfirmationFallback(booking, msg, client, phoneDigits);
+}
+function showManualConfirmationFallback(booking, msg, client, phoneDigits){
   const hasContact = phoneDigits || (client && client.email);
   openModal(`
-    <h3>Send booking confirmation?</h3>
-    <div class="hint" style="margin-top:0; margin-bottom:12px;">To ${client?client.name:'this client'}</div>
+    <h3>Couldn't send automatically</h3>
+    <div class="hint" style="margin-top:0; margin-bottom:12px;">${phoneDigits ? 'The text failed to send — you can try again manually below.' : 'No phone number on file for ' + (client?client.name:'this client') + '.'}</div>
     <div class="msg-preview">${msg}</div>
-    ${!hasContact ? `<div class="hint" style="margin-top:10px;">No phone number or email on file for this client — add one to their profile to send a confirmation.</div>` : ''}
+    ${!hasContact ? `<div class="hint" style="margin-top:10px;">Add a phone number or email to their profile to send a confirmation.</div>` : ''}
     <div class="modal-actions" style="flex-wrap:wrap; margin-top:16px;">
       <button class="btn secondary" id="cancelModal">Skip</button>
       ${client&&client.email ? `<a class="btn secondary" style="text-decoration:none;" href="mailto:${client.email}?subject=${encodeURIComponent('Your appointment is booked')}&body=${encodeURIComponent(msg)}" id="confirmEmailLink">Send Email</a>` : ''}
