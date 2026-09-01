@@ -81,11 +81,15 @@ button{font-family:inherit;}
 /* Nav - wraps onto multiple rows on narrow screens instead of side-scrolling */
 .nav{
   display:flex;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
   gap:6px;
-  padding:14px 20px;
+  padding:12px 20px;
   border-bottom:1px solid var(--line);
 }
+.nav::-webkit-scrollbar{ display:none; }
 .nav button{
   background:transparent;
   border:1px solid transparent;
@@ -95,6 +99,7 @@ button{font-family:inherit;}
   font-size:0.82rem;
   cursor:pointer;
   white-space:nowrap;
+  flex-shrink:0;
   transition:all .15s ease;
 }
 .nav button.active{
@@ -153,7 +158,12 @@ main{padding:22px 20px;}
   border:1px solid var(--line);
   border-radius:var(--radius);
   padding:16px 18px;
+  position:relative;
 }
+.stat-icon{ position:absolute; top:14px; right:14px; color:var(--paper-dim); opacity:0.45; }
+.stat-card.clickable{ cursor:pointer; transition:border-color .15s ease, transform .1s ease; }
+.stat-card.clickable:hover{ border-color:var(--gold); }
+.stat-card.clickable:active{ transform:scale(0.98); }
 .stat-card .num{font-family:'Fraunces',serif; font-size:1.9rem; color:var(--gold);}
 .stat-card .lbl{font-size:0.76rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.08em;}
 
@@ -204,6 +214,7 @@ main{padding:22px 20px;}
 .status.booked{color:var(--gold); border-color:var(--gold);}
 .status.deposit_paid{color:var(--blush); border-color:var(--blush);}
 .status.completed{color:#3F7A4F; border-color:#3F7A4F;}
+.status.no_show{color:#946A3E; border-color:#946A3E;}
 .status.cancelled{color:var(--danger); border-color:var(--danger);}
 .ticket .actions{
   display:flex;
@@ -297,6 +308,9 @@ main{padding:22px 20px;}
   outline:none; border-color:var(--gold);
 }
 .field textarea{resize:vertical; min-height:70px;}
+.search-field{ position:relative; display:flex; align-items:center; }
+.search-field svg{ position:absolute; left:12px; color:var(--paper-dim); pointer-events:none; }
+.search-field input{ padding-left:36px; }
 .check-list{
   border:1px solid var(--line);
   border-radius:8px;
@@ -484,9 +498,52 @@ main{padding:22px 20px;}
   box-shadow:0 1px 3px rgba(46,59,44,0.08);
 }
 .day-block.status-completed{ border-color:#3F7A4F; border-left-color:#3F7A4F; }
+.day-block.status-no_show{ border-color:#946A3E; border-left-color:#946A3E; }
 .day-block-time{ font-size:0.68rem; color:var(--paper-dim); font-weight:600; }
 .day-block-name{ font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .day-block-service{ font-size:0.72rem; color:var(--paper-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Week view — simple non-scrolling grid, no nested scroll containers at all */
+.week-simple-grid{
+  display:flex;
+  gap:4px;
+  margin-top:12px;
+  align-items:flex-start;
+}
+.week-simple-col{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.week-simple-header{
+  text-align:center;
+  padding:6px 2px;
+  border-radius:8px;
+  cursor:pointer;
+  border:1px solid var(--line);
+}
+.week-simple-header.is-today{ border-color:var(--gold); }
+.week-simple-header.is-selected{ background:var(--surface-2); }
+.week-simple-header .wdname{ font-size:0.6rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--paper-dim); }
+.week-simple-header .wdnum{ font-family:'Fraunces',serif; font-size:1rem; line-height:1.3; }
+.week-simple-header.is-today .wdnum{ color:var(--gold); font-weight:700; }
+.week-simple-chips{ display:flex; flex-direction:column; gap:3px; }
+.week-chip{
+  font-size:0.6rem;
+  text-align:center;
+  padding:3px 2px;
+  border-radius:5px;
+  background:var(--surface);
+  border:1px solid var(--gold);
+  cursor:pointer;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.week-chip.status-completed{ border-color:#3F7A4F; }
+.week-chip.status-no_show{ border-color:#946A3E; }
+.week-chip-empty{ font-size:0.68rem; text-align:center; color:var(--paper-dim); padding:4px 0; }
 
 .status-select{
   appearance:none;
@@ -535,7 +592,7 @@ main{padding:22px 20px;}
    ============================================================ */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNIOmHMh3n8UOPaLhjz_aXvcOMXYpzJaYUH5LnF3GZmGt6cQknFF6caWBrjinZgp5m/exec';
 const APP_SECRET_KEY = 'UiEikXpmpMYNu9-b7PINk86lfwEertAT';
-const BUILD_VERSION = 'build-reviewstep-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
+const BUILD_VERSION = 'build-clickstats-1'; // shown in the app header — bump this string with every file Claude sends, so you can confirm the live site is actually running it
 const APP_PASSWORD = 'harmony2026'; // change this to whatever you and your girlfriend want — it's a simple deterrent, not real security (see the note where this is checked below)
 
 let DATA = { clients: [], services: [], products: [], bookings: [], template: '' };
@@ -544,6 +601,8 @@ let editing = null; // {type, id}
 let calState = { viewMode:'month', monthISO: todayISO().slice(0,7)+'-01', selected: todayISO() };
 let earningsPeriod = 'mtd'; // 'mtd' | 'ytd' | 'all' | 'custom'
 let earningsCustom = { start: todayISO().slice(0,8)+'01', end: todayISO() };
+let clientSearchQuery = '';
+let productSearchQuery = '';
 
 const DEFAULT_TEMPLATE = "Hi {name}! Just a reminder about your {service} appointment on {date} at {time}. It'll take about {duration} and comes to {cost}. See you soon — reply if you need to reschedule. 💫";
 const DEFAULT_CONFIRMATION_TEMPLATE = "Hi {name}! Your {service} appointment is booked for {date} at {time}. It'll take about {duration} and comes to {cost}. Looking forward to seeing you! 💫";
@@ -609,6 +668,7 @@ function applyFreshDefaults(){
   DATA.confirmationTemplate = DEFAULT_CONFIRMATION_TEMPLATE;
   DATA.reviewTemplate = DEFAULT_REVIEW_TEMPLATE;
   DATA.taxRate = 20;
+  DATA.lastAutomationRun = null;
   DATA.services = [
     {id:uid(), name:'Swedish Massage', price:55, duration:60, cost:8},
     {id:uid(), name:'Classic Facial', price:45, duration:45, cost:10},
@@ -676,6 +736,7 @@ async function loadData(){
       ],
       template: (json.settings && json.settings.template) || DEFAULT_TEMPLATE,
       confirmationTemplate: (json.settings && json.settings.confirmationTemplate) || DEFAULT_CONFIRMATION_TEMPLATE,
+      lastAutomationRun: (json.settings && json.settings.lastAutomationRun) || null,
       reviewTemplate: (json.settings && json.settings.reviewTemplate) || DEFAULT_REVIEW_TEMPLATE,
       taxRate: (json.settings && json.settings.taxRate !== undefined && json.settings.taxRate !== '')
         ? Number(json.settings.taxRate) : 20,
@@ -704,7 +765,7 @@ function saveData(){
           products: DATA.products,
           bookings: DATA.bookings.map(serializeBooking),
           discountReasons: DATA.discountReasons,
-          settings: { template: DATA.template, confirmationTemplate: DATA.confirmationTemplate, reviewTemplate: DATA.reviewTemplate, taxRate: DATA.taxRate },
+          settings: { template: DATA.template, confirmationTemplate: DATA.confirmationTemplate, reviewTemplate: DATA.reviewTemplate, taxRate: DATA.taxRate, lastAutomationRun: DATA.lastAutomationRun },
         }),
       });
     }catch(e){
@@ -732,12 +793,15 @@ function render(){
       ${navBtn('earnings','Earnings')}
       ${navBtn('reminders','Reminders')}
       ${navBtn('archive','Archive')}
+      ${navBtn('insights','Insights')}
     </div>
     <main id="main"></main>
   `;
   document.querySelectorAll('.nav button').forEach(b=>{
     b.addEventListener('click', ()=>{ currentTab=b.dataset.tab; render(); });
   });
+  const activeNavBtn = document.querySelector('.nav button.active');
+  if(activeNavBtn) activeNavBtn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
   const main = document.getElementById('main');
   const tabs = {
     dashboard: [renderDashboard, wireDashboard],
@@ -748,6 +812,7 @@ function render(){
     earnings: [renderEarnings, wireEarnings],
     reminders: [renderReminders, wireReminders],
     archive: [renderArchive, wireArchive],
+    insights: [renderInsights, wireInsights],
   };
   const [renderFn, wireFn] = tabs[currentTab] || [];
   if(renderFn){
@@ -760,8 +825,9 @@ function render(){
   }
 }
 
+const NAV_ICONS = { dashboard:'dashboard', calendar:'calendar', bookings:'bookings', clients:'clients', products:'products', earnings:'earnings', reminders:'reminders', archive:'archive', insights:'insights' };
 function navBtn(tab,label){
-  return `<button data-tab="${tab}" class="${currentTab===tab?'active':''}">${label}</button>`;
+  return `<button data-tab="${tab}" class="${currentTab===tab?'active':''}">${icon(NAV_ICONS[tab])} ${label}</button>`;
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -771,25 +837,51 @@ function renderDashboard(){
   const lowStock = DATA.products.filter(p=>p.stock<=p.threshold);
   const upcomingCount = DATA.bookings.filter(b=>b.date>=today && isActiveBooking(b) && !b.archived).length;
 
+  // Only warn once automation has actually run before and then gone quiet —
+  // don't nag if it's simply never been set up yet.
+  const lastRunMs = DATA.lastAutomationRun ? new Date(DATA.lastAutomationRun).getTime() : null;
+  const automationStale = lastRunMs && (Date.now() - lastRunMs) > 26*3600*1000;
+
   return `
     ${!isConfigured() ? `
       <div class="template-box" style="border-color:var(--danger); margin-bottom:22px;">
-        <label style="color:var(--danger);">Not connected to Google Sheets yet</label>
+        <label style="color:var(--danger); display:flex; align-items:center; gap:6px;">${icon('warning',15)} Not connected to Google Sheets yet</label>
         <div class="hint" style="margin-top:0;">This app isn't saving anywhere permanent right now. Paste your Google Apps Script Web App URL into the <code>APPS_SCRIPT_URL</code> constant near the top of the code to connect it to your Sheet.</div>
       </div>
     ` : ''}
+    ${automationStale ? `
+      <div class="template-box" style="border-color:var(--danger); margin-bottom:22px;">
+        <label style="color:var(--danger); display:flex; align-items:center; gap:6px;">${icon('warning',15)} Automatic messages may have stopped</label>
+        <div class="hint" style="margin-top:0;">Last successful run was ${fmtDateTime(DATA.lastAutomationRun)} — reminders and review requests are usually checked hourly. Check your Apps Script trigger is still active and enabled.</div>
+      </div>
+    ` : ''}
     <div class="stat-grid">
-      <div class="stat-card"><div class="num">${todays.length}</div><div class="lbl">Today's appts</div></div>
-      <div class="stat-card"><div class="num">${upcomingCount}</div><div class="lbl">Upcoming</div></div>
-      <div class="stat-card"><div class="num">${DATA.clients.length}</div><div class="lbl">Clients</div></div>
-      <div class="stat-card"><div class="num" style="color:${lowStock.length?'var(--danger)':'var(--gold)'}">${lowStock.length}</div><div class="lbl">Low stock</div></div>
+      <div class="stat-card clickable" data-nav="today"><div class="stat-icon">${icon('calendar',18)}</div><div class="num">${todays.length}</div><div class="lbl">Today's appts</div></div>
+      <div class="stat-card clickable" data-nav="today"><div class="stat-icon">${icon('bookings',18)}</div><div class="num">${upcomingCount}</div><div class="lbl">Upcoming</div></div>
+      <div class="stat-card clickable" data-nav="clients"><div class="stat-icon">${icon('clients',18)}</div><div class="num">${DATA.clients.length}</div><div class="lbl">Clients</div></div>
+      <div class="stat-card clickable" data-nav="products"><div class="stat-icon">${icon('products',18)}</div><div class="num" style="color:${lowStock.length?'var(--danger)':'var(--gold)'}">${lowStock.length}</div><div class="lbl">Low stock</div></div>
     </div>
     <div class="section-head"><h2>Today</h2></div>
     ${todays.length ? todays.map(b=>ticketHTML(b)).join('') : emptyHTML('Nothing on the books today','Add a booking to see it here.')}
   `;
 }
 
-function wireDashboard(){ wireTicketClicks(); }
+function wireDashboard(){
+  wireTicketClicks();
+  document.querySelectorAll('.stat-card[data-nav]').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const dest = card.dataset.nav;
+      if(dest==='today'){
+        currentTab = 'calendar';
+        calState.viewMode = 'day';
+        calState.selected = todayISO();
+      } else {
+        currentTab = dest;
+      }
+      render();
+    });
+  });
+}
 
 function ticketHTML(b){
   const client = DATA.clients.find(c=>c.id===b.clientId);
@@ -817,8 +909,32 @@ function wireTicketClicks(){
   });
 }
 
+/* ---------- ICONS ----------
+   Small, minimal line-style SVGs — no external icon library is available
+   at runtime, so these are hand-drawn to match the app's own look. All use
+   currentColor so they inherit whatever text color surrounds them. */
+const ICONS = {
+  dashboard: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  bookings: '<path d="M7 3h10a1 1 0 0 1 1 1v16l-6-3.2L6 20V4a1 1 0 0 1 1-1z"/>',
+  clients: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20.5v-1.2A5.3 5.3 0 0 1 8.8 14h.4a5.3 5.3 0 0 1 5.3 5.3v1.2"/><circle cx="17" cy="8.5" r="2.4"/><path d="M20.5 20.5v-1a4 4 0 0 0-2.8-3.8"/>',
+  products: '<path d="M4 8.5L12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5L12 13l8-4.5M12 13v7"/>',
+  earnings: '<path d="M4 20V11M10 20V4M16 20v-7M22 20H2"/>',
+  reminders: '<path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17S18 15 18 8.5z"/><path d="M14 19.5a2 2 0 0 1-4 0"/>',
+  archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5M10 13.2h4"/>',
+  insights: '<path d="M3.5 3.5v17h17"/><path d="M7 15l3.8-4.8L14 13l5-6.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.3-4.3"/>',
+  warning: '<path d="M12 9.2v4.3M12 17h.01"/><path d="M10.6 4.3L2.7 18.2a1.2 1.2 0 0 0 1 1.8h16.6a1.2 1.2 0 0 0 1-1.8L13.4 4.3a1.2 1.2 0 0 0-2.1 0z"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.2a4 4 0 0 1 8 0v3.3"/>',
+  tray: '<path d="M3 12h4.5l1.5 3h6l1.5-3H21"/><path d="M5.5 5h13l2.5 7v6a1.5 1.5 0 0 1-1.5 1.5H4.5A1.5 1.5 0 0 1 3 18v-6z"/>',
+};
+function icon(name, size){
+  size = size || 16;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-3px;">${ICONS[name]||''}</svg>`;
+}
 function emptyHTML(title, sub){
-  return `<div class="empty"><div class="display">${title}</div><div>${sub}</div></div>`;
+  return `<div class="empty">${icon('tray', 26)}<div class="display">${title}</div><div>${sub}</div></div>`;
 }
 
 /* ---------- CALENDAR ---------- */
@@ -904,20 +1020,28 @@ function renderWeekView(){
   const bookingsByDay = getBookingsByDay();
   const dayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-  let cells = '';
+  let columns = '';
   for(let i=0;i<7;i++){
     const iso = addDays(weekStart, i);
-    const count = (bookingsByDay[iso]||[]).length;
     const isToday = iso===today;
     const isSelected = iso===calState.selected;
-    cells += `
-      <div class="cal-cell week-cell ${isToday?'is-today':''} ${isSelected?'is-selected':''}" data-date="${iso}">
-        <span class="weekday-lbl">${dayShort[i]}</span>
-        <span class="daynum">${dayNum(iso)}</span>
-        ${count ? `<span class="dot-count">${count}</span>` : ''}
+    const dayBookings = (bookingsByDay[iso]||[]).filter(b=>b.status!=='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+
+    const chips = dayBookings.length
+      ? dayBookings.map(b=>`<div class="week-chip status-${b.status} booking-open" data-booking-id="${b.id}">${b.time}</div>`).join('')
+      : `<div class="week-chip-empty">—</div>`;
+
+    columns += `
+      <div class="week-simple-col">
+        <div class="week-simple-header ${isToday?'is-today':''} ${isSelected?'is-selected':''}" data-date="${iso}">
+          <div class="wdname">${dayShort[i]}</div>
+          <div class="wdnum">${dayNum(iso)}</div>
+        </div>
+        <div class="week-simple-chips">${chips}</div>
       </div>
     `;
   }
+
   const weekEnd = addDays(weekStart, 6);
   const label = `${fmtDate(weekStart)} – ${fmtDate(weekEnd)}`;
 
@@ -927,8 +1051,8 @@ function renderWeekView(){
       <div class="cal-month display" style="font-size:0.95rem;">${label}</div>
       <button class="btn small secondary" id="calNext">›</button>
     </div>
-    <div class="cal-grid">${cells}</div>
-    <div class="hint" style="margin-top:14px; text-align:center;">Tap a day to see its schedule.</div>
+    <div class="week-simple-grid">${columns}</div>
+    <div class="hint" style="margin-top:14px; text-align:center;">Tap a day name to see its full schedule, or a time to open that booking.</div>
   `;
 }
 
@@ -1004,7 +1128,7 @@ function wireCalendar(){
     else calState.selected = addDays(calState.selected,1);
     render();
   });
-  document.querySelectorAll('.cal-cell[data-date]').forEach(c=>{
+  document.querySelectorAll('.cal-cell[data-date], .week-simple-header[data-date]').forEach(c=>{
     c.addEventListener('click', ()=>{
       calState.selected = c.dataset.date;
       calState.viewMode = 'day';
@@ -1070,7 +1194,7 @@ function wireBookingRowActions(){
   document.querySelectorAll('.status-select').forEach(s=>s.addEventListener('change', ()=>{
     const booking = DATA.bookings.find(x=>x.id===s.dataset.id);
     booking.status = s.value;
-    if(s.value==='completed') snapshotBooking(booking);
+    if(isFinalStatus(s.value)) snapshotBooking(booking);
     else booking.locked = false;
     saveData(); render();
   }));
@@ -1129,8 +1253,9 @@ function restoreEntity(arr, id){
 function permanentlyDeleteEntity(arrName, id){
   DATA[arrName] = DATA[arrName].filter(x=>x.id!==id);
 }
-const STATUS_LABELS = { booked:'Booked', deposit_paid:'Deposit paid', completed:'Completed (paid)', cancelled:'Cancelled' };
+const STATUS_LABELS = { booked:'Booked', deposit_paid:'Deposit paid', completed:'Completed (paid)', no_show:'No show', cancelled:'Cancelled' };
 function isActiveBooking(b){ return b.status==='booked' || b.status==='deposit_paid'; }
+function isFinalStatus(status){ return status==='completed' || status==='no_show'; } // statuses whose figures should freeze, same as completed
 function statusLabel(status){ return STATUS_LABELS[status] || status; }
 function statusOptionsHTML(current){
   return Object.keys(STATUS_LABELS).map(key=>
@@ -1182,6 +1307,7 @@ function openBookingDetailInner(id){
   openModal(`
     <h3>${client?client.name:'Unknown client'}</h3>
     <div class="hint" style="margin-top:0; margin-bottom:6px;">${fmtDate(b.date)} · ${b.time} · <span class="status ${b.status}" style="margin-left:4px;">${statusLabel(b.status)}</span></div>
+    ${b.locked ? `<div class="hint" style="margin:0 0 6px; display:flex; align-items:center; gap:5px; color:var(--paper-dim);">${icon('lock',13)} Pricing is frozen at what's shown below — later catalog price changes won't affect this booking.</div>` : ''}
     ${b.reminderSentAt
       ? `<div class="hint" style="margin:0 0 6px; color:#3F7A4F; font-weight:600;">✓ Reminder sent ${fmtDateTime(b.reminderSentAt)}</div>`
       : `<div class="hint" style="margin:0 0 6px;">Reminder not sent yet</div>`}
@@ -1223,7 +1349,7 @@ function openBookingDetailInner(id){
   `);
   document.getElementById('detailStatus').addEventListener('change', (e)=>{
     b.status = e.target.value;
-    if(e.target.value==='completed') snapshotBooking(b);
+    if(isFinalStatus(e.target.value)) snapshotBooking(b);
     else b.locked = false;
     saveData(); render();
   });
@@ -1281,14 +1407,14 @@ function openBookingModalInner(id, defaultDate, defaultClientId){
   const clientOpts = clientList.map(c=>`<option value="${c.id}" ${preselectClientId===c.id?'selected':''}>${c.name}${c.archived?' (archived)':''}</option>`).join('');
 
   const serviceChecks = serviceList.map(s=>`
-    <label class="check-row">
+    <label class="check-row" data-name="${s.name.toLowerCase()}">
       <input type="checkbox" class="svc-check" value="${s.id}" ${selectedServiceIds.includes(s.id)?'checked':''}>
       <span>${s.name}${s.archived?' (archived)':''} — £${s.price} · ${s.duration} min</span>
     </label>
   `).join('');
 
   const productChecks = productList.map(p=>`
-    <div class="check-row">
+    <div class="check-row" data-name="${p.name.toLowerCase()}">
       <label style="flex:1; display:flex; align-items:center; gap:10px;">
         <input type="checkbox" class="prod-check" value="${p.id}" ${selectedProductQty[p.id]?'checked':''}>
         <span>${p.name}${p.archived?' (archived)':''} — £${p.price}</span>
@@ -1304,10 +1430,12 @@ function openBookingModalInner(id, defaultDate, defaultClientId){
     <h3>${b?'Edit booking':'New booking'}</h3>
     <div class="field"><label>Client</label><select id="f-client">${clientOpts}</select></div>
     <div class="field"><label>Services</label>
-      <div class="check-list">${serviceChecks || '<div class="hint">No services set up yet.</div>'}</div>
+      <div class="search-field" style="margin-bottom:8px;">${icon('search',15)}<input type="text" id="svcSearchInput" placeholder="Search services…"></div>
+      <div class="check-list" id="svcCheckList">${serviceChecks || '<div class="hint">No services set up yet.</div>'}</div>
     </div>
     <div class="field"><label>Products sold (optional)</label>
-      <div class="check-list">${productChecks || '<div class="hint">No products set up yet.</div>'}</div>
+      <div class="search-field" style="margin-bottom:8px;">${icon('search',15)}<input type="text" id="prodSearchInput" placeholder="Search products…"></div>
+      <div class="check-list" id="prodCheckList">${productChecks || '<div class="hint">No products set up yet.</div>'}</div>
     </div>
     <div class="field"><label>Date</label><input type="date" id="f-date" value="${b?b.date:(defaultDate||todayISO())}"></div>
     <div class="field"><label>Time</label><input type="time" id="f-time" value="${b?b.time:'10:00'}"></div>
@@ -1361,6 +1489,18 @@ function openBookingModalInner(id, defaultDate, defaultClientId){
   document.querySelectorAll('.prod-qty').forEach(inp=>inp.addEventListener('input', updatePreview));
   updatePreview();
 
+  const filterCheckList = (containerId, query)=>{
+    const q = query.trim().toLowerCase();
+    document.getElementById(containerId).querySelectorAll('.check-row').forEach(row=>{
+      const name = row.dataset.name || '';
+      row.style.display = (!q || name.includes(q)) ? '' : 'none';
+    });
+  };
+  const svcSearch = document.getElementById('svcSearchInput');
+  if(svcSearch) svcSearch.addEventListener('input', (e)=>filterCheckList('svcCheckList', e.target.value));
+  const prodSearch = document.getElementById('prodSearchInput');
+  if(prodSearch) prodSearch.addEventListener('input', (e)=>filterCheckList('prodCheckList', e.target.value));
+
   document.getElementById('saveBooking').addEventListener('click', ()=>{
     const clientId = document.getElementById('f-client').value;
     const serviceIds = getSelectedServiceIds();
@@ -1388,7 +1528,7 @@ function openBookingModalInner(id, defaultDate, defaultClientId){
       const doEditSave = ()=>{
         Object.assign(b, bookingData);
         delete b.serviceId; // clear legacy single-service field once edited
-        if(b.status==='completed') snapshotBooking(b); // intentional edits still update the frozen figures
+        if(isFinalStatus(b.status)) snapshotBooking(b); // intentional edits still update the frozen figures
         saveData(); closeModal(); render();
       };
       if(conflict){
@@ -1461,15 +1601,28 @@ function renderClients(){
       <h2>Clients</h2>
       <button class="btn" id="addClientBtn">+ New client</button>
     </div>
-    ${sorted.length ? sorted.map(c=>clientRow(c)).join('') : emptyHTML('No clients yet','Add your first client to start booking.')}
+    <div class="field search-field" style="margin-bottom:16px;">
+      ${icon('search',15)}<input type="text" id="clientSearchInput" placeholder="Search by name, phone, or email…" value="${clientSearchQuery}">
+    </div>
+    <div id="clientListContainer">${renderClientListHTML(sorted, clientSearchQuery)}</div>
   `;
+}
+function renderClientListHTML(clients, query){
+  const q = (query||'').trim().toLowerCase();
+  const filtered = q ? clients.filter(c=>
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.phone||'').toLowerCase().includes(q) ||
+    (c.email||'').toLowerCase().includes(q)
+  ) : clients;
+  if(!filtered.length) return emptyHTML(q?'No matching clients':'No clients yet', q?'Try a different search.':'Add your first client to start booking.');
+  return filtered.map(c=>clientRow(c)).join('');
 }
 function clientRow(c){
   const bookingCount = DATA.bookings.filter(b=>b.clientId===c.id && !b.archived).length;
   return `
     <div class="list-row client-row" data-id="${c.id}" style="cursor:pointer;">
       <div class="main">
-        <div class="name">${c.name}</div>
+        <div class="name">${c.name} ${c.optedOut?'<span class="tag-lowstock" style="border-color:var(--paper-dim); color:var(--paper-dim);">opted out</span>':''}</div>
         <div class="sub">${c.phone||'no phone'}${c.email?' · '+c.email:''} · ${bookingCount} visit${bookingCount===1?'':'s'}</div>
       </div>
       <div class="side">
@@ -1481,6 +1634,16 @@ function clientRow(c){
 }
 function wireClients(){
   document.getElementById('addClientBtn').addEventListener('click', ()=>openClientModal());
+  wireClientRows();
+  const searchInput = document.getElementById('clientSearchInput');
+  searchInput.addEventListener('input', (e)=>{
+    clientSearchQuery = e.target.value;
+    const sorted = DATA.clients.filter(c=>!c.archived).sort((a,b)=>a.name.localeCompare(b.name));
+    document.getElementById('clientListContainer').innerHTML = renderClientListHTML(sorted, clientSearchQuery);
+    wireClientRows();
+  });
+}
+function wireClientRows(){
   document.querySelectorAll('.client-row').forEach(row=>{
     row.addEventListener('click', (e)=>{
       if(e.target.closest('.edit-client') || e.target.closest('.del-client')) return;
@@ -1578,6 +1741,10 @@ function openClientModal(id){
     <div class="field"><label>Date of birth</label><input type="date" id="f-dob" value="${c?c.dob||'':''}"></div>
     <div class="field"><label>How they found you</label><input id="f-referral" value="${c?c.referral||'':''}" placeholder="e.g. Instagram, referral"></div>
     <div class="field"><label>Notes (allergies, preferences, patch tests...)</label><textarea id="f-cnotes">${c?c.notes||'':''}</textarea></div>
+    <label class="check-row" style="margin-bottom:14px;">
+      <input type="checkbox" id="f-optedout" ${c&&c.optedOut?'checked':''}>
+      <span>Opted out of automated messages (reminders, review requests, and instant booking confirmations won't be sent — you can still message them manually)</span>
+    </label>
     <div class="modal-actions">
       <button class="btn secondary" id="cancelModal">Cancel</button>
       <button class="btn" id="saveClient">${c?'Save changes':'Add client'}</button>
@@ -1591,17 +1758,16 @@ function openClientModal(id){
     const dob = document.getElementById('f-dob').value;
     const referral = document.getElementById('f-referral').value.trim();
     const notes = document.getElementById('f-cnotes').value.trim();
+    const optedOut = document.getElementById('f-optedout').checked;
     if(!name){ infoModal('Please enter a name.'); return; }
-    if(c){ Object.assign(c, {name, phone, email, address, dob, referral, notes}); }
-    else { DATA.clients.push({id:uid(), name, phone, email, address, dob, referral, notes, createdAt:todayISO()}); }
+    if(c){ Object.assign(c, {name, phone, email, address, dob, referral, notes, optedOut}); }
+    else { DATA.clients.push({id:uid(), name, phone, email, address, dob, referral, notes, optedOut, createdAt:todayISO()}); }
     saveData(); closeModal(); render();
   });
 }
 
 /* ---------- PRODUCTS ---------- */
 function renderProducts(){
-  const sorted = DATA.products.filter(p=>!p.archived).sort((a,b)=>a.name.localeCompare(b.name));
-  const activeServices = DATA.services.filter(s=>!s.archived);
   return `
     <div class="section-head">
       <h2>Products & Services</h2>
@@ -1610,10 +1776,21 @@ function renderProducts(){
         <button class="btn" id="addProductBtn">+ Product</button>
       </div>
     </div>
+    <div class="field search-field" style="margin-bottom:16px;">
+      ${icon('search',15)}<input type="text" id="productSearchInput" placeholder="Search products or services…" value="${productSearchQuery}">
+    </div>
+    <div id="productServiceListContainer">${renderProductServiceListHTML(productSearchQuery)}</div>
+  `;
+}
+function renderProductServiceListHTML(query){
+  const q = (query||'').trim().toLowerCase();
+  const products = DATA.products.filter(p=>!p.archived && (!q || p.name.toLowerCase().includes(q)));
+  const services = DATA.services.filter(s=>!s.archived && (!q || s.name.toLowerCase().includes(q)));
+  return `
     <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:20px 0 10px;">Inventory</h3>
-    ${sorted.length ? sorted.map(p=>productRow(p)).join('') : emptyHTML('No products tracked','Add stock items to track inventory.')}
+    ${products.length ? products.map(p=>productRow(p)).join('') : emptyHTML(q?'No matching products':'No products tracked', q?'Try a different search.':'Add stock items to track inventory.')}
     <h3 style="font-size:1rem; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin:28px 0 10px;">Services</h3>
-    ${activeServices.length ? activeServices.map(s=>serviceRow(s)).join('') : emptyHTML('No services yet','Add a service to offer for booking.')}
+    ${services.length ? services.map(s=>serviceRow(s)).join('') : emptyHTML(q?'No matching services':'No services yet', q?'Try a different search.':'Add a service to offer for booking.')}
   `;
 }
 function productRow(p){
@@ -1650,6 +1827,15 @@ function serviceRow(s){
 function wireProducts(){
   document.getElementById('addProductBtn').addEventListener('click', ()=>openProductModal());
   document.getElementById('addServiceBtn').addEventListener('click', ()=>openServiceModal());
+  wireProductServiceRows();
+  const searchInput = document.getElementById('productSearchInput');
+  searchInput.addEventListener('input', (e)=>{
+    productSearchQuery = e.target.value;
+    document.getElementById('productServiceListContainer').innerHTML = renderProductServiceListHTML(productSearchQuery);
+    wireProductServiceRows();
+  });
+}
+function wireProductServiceRows(){
   document.querySelectorAll('.stock-plus').forEach(b=>b.addEventListener('click', ()=>{
     const p = DATA.products.find(x=>x.id===b.dataset.id); p.stock++; saveData(); render();
   }));
@@ -1883,7 +2069,7 @@ function renderReminders(){
   const reviewWindowStart = addDays(today, -8);
   const reviewWindowEnd = addDays(today, -1);
   const reviewEligible = DATA.bookings
-    .filter(b=>b.status==='completed' && !b.archived && b.date>=reviewWindowStart && b.date<=reviewWindowEnd)
+    .filter(b=>b.status!=='cancelled' && b.status!=='no_show' && !b.archived && b.date>=reviewWindowStart && b.date<=reviewWindowEnd)
     .sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time));
   const reviewNeedsSending = reviewEligible.filter(b=>!b.reviewRequestSentAt);
   const reviewAlreadySent = reviewEligible.filter(b=>b.reviewRequestSentAt);
@@ -1961,6 +2147,11 @@ async function promptBookingConfirmation(booking){
   const msg = buildConfirmationMessage(booking);
   const phoneDigits = client && client.phone ? client.phone.replace(/[^\d]/g,'') : '';
 
+  if(client && client.optedOut){
+    showToast('Booking confirmed — no message sent (client opted out)');
+    return;
+  }
+
   // The booking itself is already confirmed by having been created — this
   // just needs to send the text automatically, no extra tap required.
   if(phoneDigits){
@@ -2016,7 +2207,7 @@ function reviewCard(b){
   return `
     <div class="reminder-card" style="${sent?'opacity:0.75;':''}">
       <div class="top">
-        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}</div>
+        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}${client&&client.optedOut?'<span class="sent-badge" style="color:var(--danger); background:rgba(178,90,76,0.12);">Opted out</span>':''}</div>
         <div class="when">${fmtDate(b.date)} · ${bookingServiceNames(b)}</div>
       </div>
       ${sent ? `<div class="hint" style="color:#3F7A4F; margin-top:0; margin-bottom:10px; font-weight:600;">Sent ${fmtDateTime(b.reviewRequestSentAt)}</div>` : ''}
@@ -2040,10 +2231,11 @@ function reminderCard(b){
   return `
     <div class="reminder-card" style="${sent?'opacity:0.75;':''}">
       <div class="top">
-        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}</div>
+        <div class="name">${client?client.name:'Unknown client'} ${sent?'<span class="sent-badge">✓ Sent</span>':''}${client&&client.optedOut?'<span class="sent-badge" style="color:var(--danger); background:rgba(178,90,76,0.12);">Opted out</span>':''}</div>
         <div class="when">${fmtDate(b.date)} · ${b.time}</div>
       </div>
       ${sent ? `<div class="hint" style="color:#3F7A4F; margin-top:0; margin-bottom:10px; font-weight:600;">Sent ${fmtDateTime(b.reminderSentAt)}</div>` : ''}
+      ${client&&client.optedOut ? `<div class="hint" style="margin-top:0; margin-bottom:10px;">This client has opted out of automated messages — the buttons below still work if you want to message them yourself.</div>` : ''}
       <div class="msg-preview">${msg}</div>
       <div class="send-row">
         ${phoneDigits ? `
@@ -2135,6 +2327,106 @@ function wireArchive(){
     });
   });
 }
+
+/* ---------- INSIGHTS ---------- */
+function computeInsights(){
+  const completed = DATA.bookings.filter(b=>b.status==='completed' && !b.archived);
+
+  const clientStats = {};
+  completed.forEach(b=>{
+    if(!clientStats[b.clientId]) clientStats[b.clientId] = { spent:0, visits:0 };
+    clientStats[b.clientId].spent += bookingTotal(b);
+    clientStats[b.clientId].visits += 1;
+  });
+  const topClients = Object.entries(clientStats)
+    .map(([clientId, stats])=>({ client: DATA.clients.find(c=>c.id===clientId), spent: stats.spent, visits: stats.visits }))
+    .filter(x=>x.client)
+    .sort((a,b)=>b.spent-a.spent)
+    .slice(0,10);
+
+  const serviceStats = {};
+  completed.forEach(b=>{
+    getBookingServices(b).forEach(s=>{
+      if(!serviceStats[s.id]) serviceStats[s.id] = { service:s, count:0, revenue:0 };
+      serviceStats[s.id].count += 1;
+      serviceStats[s.id].revenue += Number(s.price)||0;
+    });
+  });
+  const topServices = Object.values(serviceStats).sort((a,b)=>b.count-a.count).slice(0,8);
+
+  const productStats = {};
+  completed.forEach(b=>{
+    getBookingProducts(b).forEach(p=>{
+      if(!productStats[p.product.id]) productStats[p.product.id] = { product:p.product, qty:0, revenue:0 };
+      productStats[p.product.id].qty += p.qty;
+      productStats[p.product.id].revenue += (Number(p.product.price)||0)*p.qty;
+    });
+  });
+  const topProducts = Object.values(productStats).sort((a,b)=>b.qty-a.qty).slice(0,8);
+
+  const activeClients = DATA.clients.filter(c=>!c.archived);
+  const clientsWithVisits = Object.keys(clientStats).length;
+  const repeatClients = Object.values(clientStats).filter(s=>s.visits>=2).length;
+  const repeatRate = clientsWithVisits>0 ? (repeatClients/clientsWithVisits*100) : 0;
+
+  const totalRevenue = completed.reduce((sum,b)=>sum+bookingTotal(b),0);
+  const avgSpend = completed.length>0 ? totalRevenue/completed.length : 0;
+
+  const thisMonth = todayISO().slice(0,7);
+  const lastMonth = addDays(thisMonth+'-01', -1).slice(0,7);
+  const newThisMonth = activeClients.filter(c=>c.createdAt && c.createdAt.slice(0,7)===thisMonth).length;
+  const newLastMonth = activeClients.filter(c=>c.createdAt && c.createdAt.slice(0,7)===lastMonth).length;
+
+  return { topClients, topServices, topProducts, repeatRate, avgSpend, newThisMonth, newLastMonth, totalClients: activeClients.length, completedCount: completed.length };
+}
+
+function renderInsights(){
+  const i = computeInsights();
+
+  const clientRows = i.topClients.length ? i.topClients.map((x,idx)=>`
+    <div class="list-row">
+      <div class="main"><div class="name">#${idx+1} ${x.client.name}</div><div class="sub">${x.visits} visit${x.visits===1?'':'s'}</div></div>
+      <div class="side"><div style="font-weight:600;">£${x.spent.toFixed(2)}</div></div>
+    </div>
+  `).join('') : emptyHTML('Not enough data yet','Mark some bookings Completed to see your top clients here.');
+
+  const serviceRows = i.topServices.length ? i.topServices.map(x=>`
+    <div class="list-row">
+      <div class="main"><div class="name">${x.service.name}</div><div class="sub">${x.count} booking${x.count===1?'':'s'}</div></div>
+      <div class="side"><div style="font-weight:600;">£${x.revenue.toFixed(2)}</div></div>
+    </div>
+  `).join('') : emptyHTML('Not enough data yet','Completed bookings will show your most popular services here.');
+
+  const productRows = i.topProducts.length ? i.topProducts.map(x=>`
+    <div class="list-row">
+      <div class="main"><div class="name">${x.product.name}</div><div class="sub">${x.qty} sold</div></div>
+      <div class="side"><div style="font-weight:600;">£${x.revenue.toFixed(2)}</div></div>
+    </div>
+  `).join('') : emptyHTML('No product sales yet','Products sold on completed bookings will show up here.');
+
+  return `
+    <div class="section-head"><h2>Insights</h2></div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-icon">${icon('clients',18)}</div><div class="num">${i.repeatRate.toFixed(0)}%</div><div class="lbl">Repeat client rate</div></div>
+      <div class="stat-card"><div class="stat-icon">${icon('earnings',18)}</div><div class="num">£${i.avgSpend.toFixed(2)}</div><div class="lbl">Avg. spend / visit</div></div>
+      <div class="stat-card"><div class="stat-icon">${icon('plus',18)}</div><div class="num">${i.newThisMonth}</div><div class="lbl">New clients this month</div></div>
+      <div class="stat-card"><div class="stat-icon">${icon('plus',18)}</div><div class="num">${i.newLastMonth}</div><div class="lbl">New clients last month</div></div>
+    </div>
+
+    <div class="section-head" style="margin-top:8px;"><h2 style="font-size:1.1rem;">Top clients by spend</h2></div>
+    ${clientRows}
+
+    <div class="section-head" style="margin-top:24px;"><h2 style="font-size:1.1rem;">Most popular services</h2></div>
+    ${serviceRows}
+
+    <div class="section-head" style="margin-top:24px;"><h2 style="font-size:1.1rem;">Most popular products</h2></div>
+    ${productRows}
+
+    <div class="hint" style="margin-top:20px;">Based on ${i.completedCount} completed booking${i.completedCount===1?'':'s'} across ${i.totalClients} client${i.totalClients===1?'':'s'}.</div>
+  `;
+}
+function wireInsights(){}
 
 /* ---------- MODAL HELPERS ---------- */
 function openModal(html){
